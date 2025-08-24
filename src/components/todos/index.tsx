@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 type Todo = {
   title: string;
   readonly id: number;
+  completed_flg: boolean;
+  delete_flg: boolean, // <-- 追加
 };
 
 // Todo コンポーネントの定義
@@ -19,8 +21,10 @@ const Todo: React.FC = () => {
   
     // 新しい Todo を作成
     const newTodo: Todo = {
-      title: text, // text ステートの値を content プロパティへ
+      title: text,
       id: nextId,
+      // 初期値は false
+      completed_flg: false,
     };
 
     setTodos((prevTodos) => [newTodo, ...prevTodos]);
@@ -31,28 +35,52 @@ const Todo: React.FC = () => {
   };
 
   // この関数を追加してください
-const handleEdit = (id: number, value: string) => {
-  setTodos((todos) => {
-    const newTodos = todos.map((todo) => {
-      if (todo.id === id) {
-        // 新しいオブジェクトを作成して返す
-        return { ...todo, title: value };
-      }
-      return todo;
+  const handleEdit = (id: number, value: string) => {
+    setTodos((todos) => {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          // 新しいオブジェクトを作成して返す
+          return { ...todo, title: value };
+        }
+        return todo;
+      });
+
+      // todos ステートが書き換えられていないかチェック
+      console.log('=== Original todos ===');
+      todos.map((todo) => {
+        console.log(`id: ${todo.id}, title: ${todo.title}`);
+      });
+
+      return newTodos;
     });
+  };
+  
+  const handleCheck = (id: number, completed_flg: boolean) => {
+    setTodos((todos) => {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          return { ...todo, completed_flg };
+        }
+        return todo;
+      });
 
-
-    // todos ステートが書き換えられていないかチェック
-    console.log('=== Original todos ===');
-    todos.map((todo) => {
-      console.log(`id: ${todo.id}, title: ${todo.title}`);
+      return newTodos;
     });
+  };
+
+  const handleRemove = (id: number, delete_flg: boolean) => {
+    setTodos((todos) => {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          return { ...todo, delete_flg };
+        }
+        return todo;
+      });
 
 
-    return newTodos;
-  });
-};
-
+      return newTodos;
+    });
+  };
 
   return (
     <div>
@@ -71,19 +99,31 @@ const handleEdit = (id: number, value: string) => {
       </form>
       <ul>
         {todos.map((todo) => {
-            return (
+          return (
             <li key={todo.id}>
-                <input
+              <input
+                type="checkbox"
+                checked={todo.completed_flg}
+                // 呼び出し側で checked フラグを反転させる
+                onChange={() => handleCheck(todo.id, !todo.completed_flg)}
+              />
+              <input
                 type="text"
                 value={todo.title}
+                disabled={todo.completed_flg}
                 onChange={(e) => handleEdit(todo.id, e.target.value)}
-                />
+              />
+              <button onClick={() => handleRemove(todo.id, !todo.delete_flg)}>
+                {todo.delete_flg ? '復元' : '削除'}
+              </button>
+
             </li>
-            );
+          );
         })}
       </ul>
     </div>
   );
-};
+}; // ← ここでコンポーネントの定義を閉じる
 
+// export文はコンポーネント定義の外（ファイルのトップレベル）に配置
 export default Todo;
