@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-// "Todo" 型の定義をコンポーネント外で行います
+// Todo型の定義
 type Todo = {
   title: string;
   readonly id: number;
@@ -10,130 +10,129 @@ type Todo = {
 
 type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 
-// Todo コンポーネントの定義
 const Todo: React.FC = () => {
-  const [todos, setTodos] = useState<Todo[]>([]); // Todo配列として初期化
-  const [text, setText] = useState(''); // テキスト入力用
-  const [nextId, setNextId] = useState(1); // 次のTodoのIDを保持するステート
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [text, setText] = useState('');
+  const [nextId, setNextId] = useState(1);
   const [filter, setFilter] = useState<Filter>('all');
-  
+
   // todos ステートを更新する関数
   const handleSubmit = () => {
-    // 何も入力されていなかったらリターン
     if (!text) return;
-  
-    // 新しい Todo を作成
+
     const newTodo: Todo = {
       title: text,
       id: nextId,
-      // 初期値は false
       completed_flg: false,
-      delete_flg: false, // 追加
+      delete_flg: false,
     };
 
     setTodos((prevTodos) => [newTodo, ...prevTodos]);
-    setNextId(nextId + 1); // 次の ID を更新
-  
-    // フォームへの入力をクリアする
+    setNextId(nextId + 1);
     setText('');
   };
 
-  // この関数を追加してください
-  const handleEdit = (id: number, value: string) => {
-    setTodos((todos) => {
-      const newTodos = todos.map((todo) => {
-        if (todo.id === id) {
-          // 新しいオブジェクトを作成して返す
-          return { ...todo, title: value };
-        }
-        return todo;
-      });
-
-      // todos ステートが書き換えられていないかチェック
-      console.log('=== Original todos ===');
-      todos.map((todo) => {
-        console.log(`id: ${todo.id}, title: ${todo.title}`);
-      });
-
-      return newTodos;
-    });
-  };
-  
-  const handleCheck = (id: number, completed_flg: boolean) => {
-    setTodos((todos) => {
-      const newTodos = todos.map((todo) => {
-        if (todo.id === id) {
-          return { ...todo, completed_flg };
-        }
-        return todo;
-      });
-
-      return newTodos;
-    });
-  };
-
-  const handleRemove = (id: number, delete_flg: boolean) => {
-    setTodos((todos) => {
-      const newTodos = todos.map((todo) => {
-        if (todo.id === id) {
-          return { ...todo, delete_flg };
-        }
-        return todo;
-      });
-
-      return newTodos;
-    });
-  };
-
-  // フィルタリングされたタスクリストを取得する関数（重複を削除）
+  // フィルタリングされたタスクリストを取得する関数
   const getFilteredTodos = () => {
     switch (filter) {
       case 'completed':
-        // 完了済み **かつ** 削除されていないタスクを返す
         return todos.filter((todo) => todo.completed_flg && !todo.delete_flg);
       case 'unchecked':
-        // 未完了 **かつ** 削除されていないタスクを返す
         return todos.filter((todo) => !todo.completed_flg && !todo.delete_flg);
       case 'delete':
-        // 削除されたタスクを返す
         return todos.filter((todo) => todo.delete_flg);
       default:
-        // 削除されていないすべてのタスクを返す
         return todos.filter((todo) => !todo.delete_flg);
     }
   };
-  
+
+  const handleTodo = <K extends keyof Todo, V extends Todo[K]>(
+    id: number,
+    key: K,
+    value: V
+  ) => {
+    setTodos((todos) => {
+      const newTodos = todos.map((todo) => {
+        if (todo.id === id) {
+          return { ...todo, [key]: value };
+        } else {
+          return todo;
+        }
+      });
+      return newTodos;
+    });
+  };
+
   const handleFilterChange = (filter: Filter) => {
     setFilter(filter);
   };
 
-  const isFormDisabled = filter === 'completed' || filter === 'delete';
-  
   // 物理的に削除する関数
   const handleEmpty = () => {
     setTodos((todos) => todos.filter((todo) => !todo.delete_flg));
   };
 
+  // localStorageを使用してデータを保存・読み込み
+  useEffect(() => {
+    try {
+      const savedTodos = localStorage.getItem('todo-20240622');
+      if (savedTodos) {
+        const parsedTodos = JSON.parse(savedTodos) as Todo[];
+        setTodos(parsedTodos);
+        // 最大IDを計算して次のIDを設定
+        if (parsedTodos.length > 0) {
+          const maxId = Math.max(...parsedTodos.map(todo => todo.id));
+          setNextId(maxId + 1);
+        }
+      }
+    } catch (error) {
+      console.error('データの読み込みに失敗しました:', error);
+    }
+  }, []);
+
+  // todos が更新されるたびにlocalStorageに保存
+  useEffect(() => {
+    try {
+      localStorage.setItem('todo-20240622', JSON.stringify(todos));
+    } catch (error) {
+      console.error('データの保存に失敗しました:', error);
+    }
+  }, [todos]);
+
   return (
-    <div className="todo-container">
-      <select
-        defaultValue="all"
-        onChange={(e) => handleFilterChange(e.target.value as Filter)}
-      >
-        <option value="all">すべてのタスク</option>
-        <option value="completed">完了したタスク</option>
-        <option value="unchecked">現在のタスク</option>
-        <option value="delete">ごみ箱</option>
-      </select>
-      {/* フィルターが `delete` のときは「ごみ箱を空にする」ボタンを表示 */}
+    <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md space-y-4">
+      <div className="flex items-center space-x-4">
+        <button
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          onClick={() => window.location.href = '/'}
+          title="Topページに戻る"
+        >
+          ← 戻る
+        </button>
+        
+        <select
+          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={filter}
+          onChange={(e) => handleFilterChange(e.target.value as Filter)}
+        >
+          <option value="all">すべてのタスク</option>
+          <option value="completed">完了したタスク</option>
+          <option value="unchecked">現在のタスク</option>
+          <option value="delete">ごみ箱</option>
+        </select>
+      </div>
+
       {filter === 'delete' ? (
-        <button onClick={handleEmpty}>
+        <button 
+          onClick={handleEmpty}
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+        >
           ごみ箱を空にする
         </button>
       ) : (
-        // フィルターが `completed` でなければ Todo 入力フォームを表示
         filter !== 'completed' && (
           <form
+            className="flex space-x-2"
             onSubmit={(e) => {
               e.preventDefault();
               handleSubmit();
@@ -141,32 +140,59 @@ const Todo: React.FC = () => {
           >
             <input
               type="text"
-              value={text} // フォームの入力値をステートにバインド
-              onChange={(e) => setText(e.target.value)} // 入力値が変わった時にステートを更新
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="新しいタスクを入力..."
             />
-            <button className="insert-btn" type="submit">追加</button>
+            <button 
+              type="submit"
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
+            >
+              追加
+            </button>
           </form>
         )
       )}
-      <ul>
+
+      <ul className="space-y-2">
         {getFilteredTodos().map((todo) => (
-          <li key={todo.id}>
+          <li key={todo.id} className="flex items-center space-x-2 p-3 border border-gray-200 rounded-lg">
             <input
               type="checkbox"
+              disabled={todo.delete_flg}
               checked={todo.completed_flg}
-              onChange={() => handleCheck(todo.id, !todo.completed_flg)}
+              onChange={() => handleTodo(todo.id, 'completed_flg', !todo.completed_flg)}
+              className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
             />
             <input
               type="text"
+              disabled={todo.completed_flg || todo.delete_flg}
               value={todo.title}
-              onChange={(e) => handleEdit(todo.id, e.target.value)}
+              onChange={(e) => handleTodo(todo.id, 'title', e.target.value)}
+              className={`flex-1 px-2 py-1 border border-gray-300 rounded ${
+                todo.completed_flg ? 'line-through text-gray-500 bg-gray-100' : ''
+              } ${todo.delete_flg ? 'bg-red-50' : ''}`}
             />
-            <button onClick={() => handleRemove(todo.id, !todo.delete_flg)}>
+            <button 
+              onClick={() => handleTodo(todo.id, 'delete_flg', !todo.delete_flg)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                todo.delete_flg 
+                  ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                  : 'bg-red-500 text-white hover:bg-red-600'
+              }`}
+            >
               {todo.delete_flg ? '復元' : '削除'}
             </button>
           </li>
         ))}
       </ul>
+      
+      {getFilteredTodos().length === 0 && (
+        <p className="text-center text-gray-500 py-8">
+          {filter === 'delete' ? 'ごみ箱は空です' : 'タスクがありません'}
+        </p>
+      )}
     </div>
   );
 };
