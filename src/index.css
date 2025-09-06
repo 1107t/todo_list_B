@@ -1,4 +1,3 @@
-/* 日付表示のスタイル */
 .date-display {
   text-align: center;
   font-size: 1.5rem;
@@ -93,19 +92,41 @@
 
 /* 復元ボタン */
 .restore-button {
-  background-color: #ff8c00 !important;
+  background-color: #dc3545 !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 24px !important;
+  min-width: 30px !important;
 }
 
 .restore-button:hover {
-  background-color: #e67e00 !important;
+  background-color: #c82333 !important;
 }
 
+/* 削除ボタン */
 .delete-button {
-  background-color: #ff8c00;
+  background-color: #dc3545 !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 24px !important;
+  min-width: 30px !important;
 }
 
 .delete-button:hover {
-  background-color: #e67e00;
+  background-color: #c82333 !important;
+}
+
+/* 編集ボタン */
+.edit-button {
+  background-color: #28a745 !important;
+  padding: 4px 8px !important;
+  font-size: 11px !important;
+  height: 24px !important;
+  min-width: 30px !important;
+}
+
+.edit-button:hover {
+  background-color: #218838 !important;
 }
 
 /* 追加ボタンもオレンジ色に */

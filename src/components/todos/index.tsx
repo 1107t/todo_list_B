@@ -407,162 +407,8 @@ const TodoApp: React.FC = () => {
 
     return (
       <div className="todo-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <style jsx>{`
-          .date-display {
-            text-align: center;
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            width: 100%;
-          }
-
-          .filter-container {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 1rem;
-          }
-
-          .filter-select {
-            width: auto;
-            max-width: 300px;
-            margin: 0.5em 0;
-            padding: 0.75em;
-            font-size: 1.2em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-          }
-
-          .input-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 1rem;
-          }
-
-          .task-input {
-            width: auto;
-            max-width: 400px;
-            margin: 0.5em 0;
-            padding: 0.75em;
-            font-size: 1.2em;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-          }
-
-          .navigation-buttons {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-          }
-
-          .nav-button {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.3s ease;
-          }
-
-          .prev-button, .next-button {
-            background-color: #ff8c00;
-            color: white;
-          }
-
-          .prev-button:hover, .next-button:hover {
-            background-color: #e67e00;
-          }
-
-          .back-button {
-            background-color: #ff8c00;
-            color: white;
-          }
-
-          .back-button:hover {
-            background-color: #e67e00;
-          }
-
-          .empty-button {
-            background-color: #ff8c00 !important;
-            width: auto !important;
-          }
-
-          .empty-button:hover {
-            background-color: #e67e00 !important;
-          }
-
-          .restore-button {
-            background-color: #dc3545 !important;
-          }
-
-          .restore-button:hover {
-            background-color: #c82333 !important;
-          }
-
-          .delete-button {
-            background-color: #dc3545 !important;
-          }
-
-          .delete-button:hover {
-            background-color: #c82333 !important;
-          }
-
-          .edit-button {
-            background-color: #28a745 !important;
-          }
-
-          .edit-button:hover {
-            background-color: #218838 !important;
-          }
-
-          button[type='submit'] {
-            background-color: #ff8c00 !important;
-            color: #fff;
-            border: none;
-            cursor: pointer;
-            height: 45px;
-            width: 35%;
-            font-size: 1.2em;
-            padding: 0.5em 1em;
-            border-radius: 5px;
-          }
-
-          button[type='submit']:hover {
-            background-color: #e67e00 !important;
-          }
-
-          li button {
-            padding: 0.3em 0.6em; 
-            background-color: #ff8c00 !important;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            width: 100px;
-          }
-
-          li button:hover {
-            background-color: #e67e00 !important;
-          }
-
-          .completed {
-            text-decoration: line-through;
-            color: #666;
-            background-color: #f8f9fa !important;
-          }
-
-          .empty-message {
-            text-align: center;
-            padding: 2rem;
-            color: #666;
-            font-size: 1.1rem;
-          }
-        `}</style>
-
+        
+               
         <div className="date-display" style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
           {formatDate(currentDate)}
         </div>
@@ -662,106 +508,90 @@ const TodoApp: React.FC = () => {
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {getFilteredTodos().map((todo) => (
             <li key={todo.id} style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white' }}>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ 
-                  margin: 0, 
-                  fontSize: '18px', 
-                  color: todo.completed_flg ? '#666' : '#333',
-                  textDecoration: todo.completed_flg ? 'line-through' : 'none'
-                }}>
-                  {todo.title}
-                </h3>
-              </div>
-              
               <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
-                <div style={{ flex: '0 0 140px', paddingTop: '30px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
-                  <select
-                    value={todo.progress}
-                    onChange={(e) => handleTodo(todo.id, 'progress', Number(e.target.value))}
-                    disabled={todo.delete_flg}
-                    style={{ 
-                      width: '100%', 
-                      padding: '6px', 
-                      fontSize: '12px', 
-                      border: '1px solid #ccc', 
-                      borderRadius: '5px',
-                      backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white'
-                    }}
-                  >
-                    <option value={0}>0%</option>
-                    <option value={10}>10%</option>
-                    <option value={20}>20%</option>
-                    <option value={30}>30%</option>
-                    <option value={40}>40%</option>
-                    <option value={50}>50%</option>
-                    <option value={60}>60%</option>
-                    <option value={70}>70%</option>
-                    <option value={80}>80%</option>
-                    <option value={90}>90%</option>
-                    <option value={100}>100%</option>
-                  </select>
-                </div>
-                
-                <div style={{ flex: '0 0 140px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div>
-                    <strong>開始日:</strong>
-                    <input
-                      type="date"
-                      value={todo.start_date}
-                      onChange={(e) => handleTodo(todo.id, 'start_date', e.target.value)}
+                <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: '0 0 47px', paddingTop: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
+                    <select
+                      value={todo.progress}
+                      onChange={(e) => handleTodo(todo.id, 'progress', Number(e.target.value))}
                       disabled={todo.delete_flg}
                       style={{ 
-                        marginLeft: '5px', 
-                        padding: '4px 8px', 
-                        fontSize: '11px', 
+                        width: '100%', 
+                        padding: '6px', 
+                        fontSize: '12px', 
                         border: '1px solid #ccc', 
-                        borderRadius: '4px',
-                        backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                        width: '130px',
-                        fontFamily: 'Arial, sans-serif',
-                        cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
+                        borderRadius: '5px',
+                        backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white'
                       }}
-                    />
-                    <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-                      {formatDateString(todo.start_date)}
-                    </div>
+                    >
+                      <option value={0}>0%</option>
+                      <option value={10}>10%</option>
+                      <option value={20}>20%</option>
+                      <option value={30}>30%</option>
+                      <option value={40}>40%</option>
+                      <option value={50}>50%</option>
+                      <option value={60}>60%</option>
+                      <option value={70}>70%</option>
+                      <option value={80}>80%</option>
+                      <option value={90}>90%</option>
+                      <option value={100}>100%</option>
+                    </select>
                   </div>
                   
-                  <div>
-                    <strong>完了予定:</strong>
-                    <input
-                      type="date"
-                      value={todo.due_date}
-                      onChange={(e) => handleTodo(todo.id, 'due_date', e.target.value)}
-                      disabled={todo.delete_flg}
-                      min={todo.start_date || undefined}
-                      style={{ 
-                        marginLeft: '5px', 
-                        padding: '4px 8px', 
-                        fontSize: '11px', 
-                        border: '1px solid #ccc', 
-                        borderRadius: '4px',
-                        backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                        width: '130px',
-                        fontFamily: 'Arial, sans-serif',
-                        cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
-                      }}
-                    />
-                    <div style={{ fontSize: '11px', color: '#888', marginTop: '2px' }}>
-                      {formatDateString(todo.due_date)}
+                  <div style={{ flex: '0 0 140px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <strong>開始日:</strong>
+                      <input
+                        type="date"
+                        value={todo.start_date}
+                        onChange={(e) => handleTodo(todo.id, 'start_date', e.target.value)}
+                        disabled={todo.delete_flg}
+                        style={{ 
+                          marginLeft: '5px', 
+                          padding: '4px 8px', 
+                          fontSize: '11px', 
+                          border: '1px solid #ccc', 
+                          borderRadius: '4px',
+                          backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
+                          width: '130px',
+                          fontFamily: 'Arial, sans-serif',
+                          cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
+                        }}
+                      />
+                    </div>
+                    
+                    <div>
+                      <strong>完了予定:</strong>
+                      <input
+                        type="date"
+                        value={todo.due_date}
+                        onChange={(e) => handleTodo(todo.id, 'due_date', e.target.value)}
+                        disabled={todo.delete_flg}
+                        min={todo.start_date || undefined}
+                        style={{ 
+                          marginLeft: '5px', 
+                          padding: '4px 8px', 
+                          fontSize: '11px', 
+                          border: '1px solid #ccc', 
+                          borderRadius: '4px',
+                          backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
+                          width: '130px',
+                          fontFamily: 'Arial, sans-serif',
+                          cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
                 
-                <div style={{ flex: '1', paddingTop: '30px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1', paddingTop: '37px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ flex: '1' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>開始日メモ</label>
                     <input
                       type="text"
-                      value={todo.progress === 100 ? '' : todo.start_note}
-                      onChange={(e) => handleTodo(todo.id, 'start_note', e.target.value)}
-                      placeholder="開始日のメモ..."
+                      value={todo.progress === 100 ? '' : todo.title}
+                      onChange={(e) => handleTodo(todo.id, 'title', e.target.value)}
+                      placeholder="タイトルを編集..."
                       disabled={todo.delete_flg || todo.progress === 100}
                       style={{ 
                         width: 'calc(100% - 10px)', 
