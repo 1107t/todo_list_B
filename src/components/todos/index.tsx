@@ -18,13 +18,13 @@ type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 // メインアプリコンポーネント
 const TodoApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<'calendar' | 'todo'>('calendar');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2024, 11, 4));
   const [todos, setTodos] = useState<Todo[]>([]); // 全体のTodoリスト
   const [nextId, setNextId] = useState(1);
 
   // カレンダーコンポーネント
   const CalendarView: React.FC = () => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(selectedDate);
 
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -285,11 +285,11 @@ const TodoApp: React.FC = () => {
     const [startNote, setStartNote] = useState('');
     const [progress, setProgress] = useState(0);
     const [startDate, setStartDate] = useState(() => {
-      return selectedDate.toISOString().split('T')[0];
-    });
-    const [dueDate, setDueDate] = useState(() => {
-      return selectedDate.toISOString().split('T')[0];
-    });
+        return new Date(2024, 11, 5).toISOString().split('T')[0];
+      });
+      const [dueDate, setDueDate] = useState(() => {
+        return new Date(2024, 11, 5).toISOString().split('T')[0];
+      });
     const [filter, setFilter] = useState<Filter>('all');
     const [currentDate] = useState(selectedDate);
     const [showDetailForm, setShowDetailForm] = useState(false);
@@ -320,7 +320,7 @@ const TodoApp: React.FC = () => {
       setDescription('');
       setStartNote('');
       setProgress(0);
-      const dateString = selectedDate.toISOString().split('T')[0];
+      const dateString = new Date(2024, 11, 5).toISOString().split('T')[0];
       setStartDate(dateString);
       setDueDate(dateString);
       setShowDetailForm(false);
