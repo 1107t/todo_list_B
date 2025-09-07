@@ -220,29 +220,38 @@ const TodoApp: React.FC = () => {
                   {day.date.getDate()}
                 </div>
                 
-                {events.slice(0, 3).map(event => {
-                  const backgroundColor = event.completed_flg ? '#28a745' : 
-                                        event.progress >= 50 ? '#ffc107' : '#dc3545';
-                  return (
+                {events.slice(0, 3).map(event => (
+                  <div
+                    key={event.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '2px',
+                      fontSize: '10px',
+                      color: '#333',
+                      overflow: 'hidden'
+                    }}
+                    title={`${event.title} (${event.progress}%)`}
+                  >
                     <div
-                      key={event.id}
                       style={{
-                        backgroundColor: backgroundColor,
-                        color: 'white',
-                        padding: '2px 4px',
-                        borderRadius: '3px',
-                        fontSize: '10px',
-                        marginBottom: '2px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        width: '6px',
+                        height: '6px',
+                        backgroundColor: '#003366', // 紺色
+                        borderRadius: '50%',
+                        marginRight: '4px',
+                        flexShrink: 0
                       }}
-                      title={`${event.title} (${event.progress}%)`}
-                    >
-                      {event.title} ({event.progress}%)
-                    </div>
-                  );
-                })}
+                    />
+                    <span style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {event.title}
+                    </span>
+                  </div>
+                ))}
                 
                 {events.length > 3 && (
                   <div style={{
@@ -261,16 +270,8 @@ const TodoApp: React.FC = () => {
         {/* 凡例 */}
         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#dc3545', borderRadius: '3px' }}></div>
-            <span style={{ fontSize: '14px' }}>進捗率 0-49%</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#ffc107', borderRadius: '3px' }}></div>
-            <span style={{ fontSize: '14px' }}>進捗率 50-99%</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '16px', height: '16px', backgroundColor: '#28a745', borderRadius: '3px' }}></div>
-            <span style={{ fontSize: '14px' }}>完了済み</span>
+            <div style={{ width: '6px', height: '6px', backgroundColor: '#003366', borderRadius: '50%' }}></div>
+            <span style={{ fontSize: '14px' }}>タスク</span>
           </div>
         </div>
       </div>
@@ -328,9 +329,9 @@ const TodoApp: React.FC = () => {
     const getFilteredTodos = () => {
       switch (filter) {
         case 'completed':
-          return todos.filter((todo) => todo.completed_flg && !todo.delete_flg);
+          return todos.filter((todo) => todo.progress === 100 && !todo.delete_flg);
         case 'unchecked':
-          return todos.filter((todo) => !todo.completed_flg && !todo.delete_flg);
+          return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
         case 'delete':
           return todos.filter((todo) => todo.delete_flg);
         default:
