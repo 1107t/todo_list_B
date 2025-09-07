@@ -17,7 +17,7 @@
 
 .filter-select {
   width: auto;
-  max-width: 300px;
+  max-width: 1000px;
   margin: 0.5em 0;
   padding: 0.75em;
   font-size: 1.2em;
@@ -35,7 +35,7 @@
 
 .task-input {
   width: auto;
-  max-width: 400px;
+  max-width: 1000px;
   margin: 0.5em 0;
   padding: 0.75em;
   font-size: 1.2em;
@@ -106,10 +106,15 @@
 /* 削除ボタン */
 .delete-button {
   background-color: #dc3545 !important;
-  padding: 4px 8px !important;
-  font-size: 11px !important;
-  height: 24px !important;
-  min-width: 30px !important;
+  color: white !important;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  width: auto !important;
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
 }
 
 .delete-button:hover {
@@ -119,10 +124,15 @@
 /* 編集ボタン */
 .edit-button {
   background-color: #28a745 !important;
-  padding: 4px 8px !important;
-  font-size: 11px !important;
-  height: 24px !important;
-  min-width: 30px !important;
+  color: white !important;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  width: auto !important;  /* ← これを追加 */
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
 }
 
 .edit-button:hover {

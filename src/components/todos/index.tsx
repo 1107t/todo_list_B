@@ -108,10 +108,10 @@ const TodoApp: React.FC = () => {
             
             <div style={{ display: 'flex', gap: '10px' }}>
               <button
-                onClick={() => navigateMonth('prev')}
+                onClick={() => setCurrentDate(new Date())}
                 style={{
                   padding: '10px 15px',
-                  backgroundColor: '#ff8c00',
+                  backgroundColor: '#808080',
                   color: 'white',
                   border: 'none',
                   borderRadius: '5px',
@@ -119,14 +119,29 @@ const TodoApp: React.FC = () => {
                   fontSize: '16px'
                 }}
               >
-                ← 前月
+                今日
+              </button>
+              
+              <button
+                onClick={() => navigateMonth('prev')}
+                style={{
+                  padding: '10px 15px',
+                  backgroundColor: '#003366',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                ←
               </button>
               
               <button
                 onClick={() => navigateMonth('next')}
                 style={{
                   padding: '10px 15px',
-                  backgroundColor: '#ff8c00',
+                  backgroundColor: '#003366',
                   color: 'white',
                   border: 'none',
                   borderRadius: '5px',
@@ -134,7 +149,7 @@ const TodoApp: React.FC = () => {
                   fontSize: '16px'
                 }}
               >
-                次月 →
+                →
               </button>
             </div>
           </div>
@@ -406,9 +421,7 @@ const TodoApp: React.FC = () => {
     };
 
     return (
-      <div className="todo-container" style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        
-               
+      <div className="todo-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>        
         <div className="date-display" style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
           {formatDate(currentDate)}
         </div>
@@ -447,7 +460,7 @@ const TodoApp: React.FC = () => {
             className="filter-select"
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value as Filter)}
-            style={{ padding: '8px 12px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px', width: '200px' }}
+            style={{ padding: '8px 12px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px', width: 'calc(100% - 20px)' }}
           >
             <option value="all">すべてのタスク</option>
             <option value="completed">完了したタスク</option>
@@ -472,7 +485,7 @@ const TodoApp: React.FC = () => {
                     handleSubmit();
                   }
                 }}
-                style={{ width: '100%', padding: '10px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px' }}
+                style={{ width: 'calc(100% - 20px)', padding: '10px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px' }}
               />
             </div>
             <div>
@@ -507,10 +520,10 @@ const TodoApp: React.FC = () => {
         
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {getFilteredTodos().map((todo) => (
-            <li key={todo.id} style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: 'white' }}>
+            <li key={todo.id} style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
               <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
-                <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px' }}>
-                  <div style={{ flex: '0 0 47px', paddingTop: '15px' }}>
+                <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px', backgroundColor: '#f5deb3', padding: '10px', borderRadius: '5px' }}>
+                  <div style={{ flex: '0 0 66px', paddingTop: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
                     <select
                       value={todo.progress}
@@ -539,7 +552,7 @@ const TodoApp: React.FC = () => {
                     </select>
                   </div>
                   
-                  <div style={{ flex: '0 0 140px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ flex: '0 0 105px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <div>
                       <strong>開始日:</strong>
                       <input
@@ -554,7 +567,7 @@ const TodoApp: React.FC = () => {
                           border: '1px solid #ccc', 
                           borderRadius: '4px',
                           backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                          width: '130px',
+                          width: '95px',
                           fontFamily: 'Arial, sans-serif',
                           cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
                         }}
@@ -576,7 +589,7 @@ const TodoApp: React.FC = () => {
                           border: '1px solid #ccc', 
                           borderRadius: '4px',
                           backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                          width: '130px',
+                          width: '95px',
                           fontFamily: 'Arial, sans-serif',
                           cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
                         }}
@@ -585,7 +598,7 @@ const TodoApp: React.FC = () => {
                   </div>
                 </div>
                 
-                <div style={{ flex: '1', paddingTop: '37px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1', paddingTop: '55px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
                   <div style={{ flex: '1' }}>
                     <input
                       type="text"
@@ -609,31 +622,12 @@ const TodoApp: React.FC = () => {
                     onClick={() => {
                       toggleExpanded(todo.id);
                     }}
-                    style={{ 
-                      padding: '6px 10px', 
-                      backgroundColor: '#28a745',
-                      color: 'white',
-                      border: 'none', 
-                      borderRadius: '3px', 
-                      cursor: 'pointer',
-                      height: '28px',
-                      minWidth: '40px'
-                    }}
                   >
                     編集
                   </button>
                   <button 
                     className={todo.delete_flg ? 'restore-button' : 'delete-button'}
                     onClick={() => handleTodo(todo.id, 'delete_flg', !todo.delete_flg)}
-                    style={{ 
-                      padding: '6px 10px', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '5px', 
-                      cursor: 'pointer',
-                      height: '28px',
-                      minWidth: '40px'
-                    }}
                    >
                     {todo.delete_flg ? '復元' : '削除'}
                   </button>
