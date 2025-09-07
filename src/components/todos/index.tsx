@@ -331,7 +331,7 @@ const TodoApp: React.FC = () => {
         case 'completed':
           return todos.filter((todo) => todo.progress === 100 && !todo.delete_flg);
         case 'unchecked':
-          return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
+        return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
         case 'delete':
           return todos.filter((todo) => todo.delete_flg);
         default:
@@ -603,9 +603,8 @@ const TodoApp: React.FC = () => {
                   <div style={{ flex: '1' }}>
                     <input
                       type="text"
-                      value={todo.progress === 100 ? '' : todo.title}
+                      value={todo.title}
                       onChange={(e) => handleTodo(todo.id, 'title', e.target.value)}
-                      placeholder="タイトルを編集..."
                       disabled={todo.delete_flg || todo.progress === 100}
                       style={{ 
                         width: 'calc(100% - 10px)', 
@@ -640,9 +639,8 @@ const TodoApp: React.FC = () => {
                 <div style={{ marginTop: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
                   <textarea
-                    value={todo.progress === 100 ? '' : todo.description || ''}
+                    value={todo.title}
                     onChange={(e) => handleTodo(todo.id, 'description', e.target.value)}
-                    placeholder="詳細説明を入力..."
                     disabled={todo.delete_flg || todo.progress === 100}
                     rows={3}
                     style={{ 
