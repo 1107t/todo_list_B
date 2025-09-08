@@ -291,13 +291,16 @@ const TodoApp: React.FC = () => {
         return new Date(2024, 11, 5).toISOString().split('T')[0];
       });
     const [filter, setFilter] = useState<Filter>('all');
-    const [currentDate] = useState(selectedDate);
+    const [currentDate, setCurrentDate] = useState(selectedDate);
     const [showDetailForm, setShowDetailForm] = useState(false);
     const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
 
+    //useEffect(() => {
+    //  console.log('TODO!');
+    //}, []);
     useEffect(() => {
-      console.log('TODO!');
-    }, []);
+      setCurrentDate(selectedDate);
+    }, [selectedDate]);
 
     const handleSubmit = () => {
       if (!text) return;
@@ -344,41 +347,46 @@ const TodoApp: React.FC = () => {
     };
 
     const handleTodo = <K extends keyof Todo, V extends Todo[K]>(
-      id: number,
-      key: K,
-      value: V
-    ) => {
-      setTodos((todos) => {
-        const newTodos = todos.map((todo) => {
-          if (todo.id === id) {
-            const updatedTodo = { ...todo, [key]: value };
-            
-            if (key === 'start_date' || key === 'due_date') {
-              const startDate = key === 'start_date' ? value as string : todo.start_date;
-              const dueDate = key === 'due_date' ? value as string : todo.due_date;
-              
-              if (startDate && dueDate && startDate > dueDate) {
-                if (key === 'start_date') {
-                  updatedTodo.due_date = value as string;
-                }
-                if (key === 'due_date') {
-                  return todo;
-                }
-              }
+  id: number,
+  key: K,
+  value: V
+) => {
+   
+  setTodos((todos) => {
+     
+    const newTodos = todos.map((todo) => {
+      if (todo.id === id) {
+        const updatedTodo = { ...todo, [key]: value };
+         
+        // 日付関連の処理は、start_dateまたはdue_dateを更新する場合のみ実行
+        if (key === 'start_date' || key === 'due_date') {
+          const startDate = key === 'start_date' ? value as string : todo.start_date;
+          const dueDate = key === 'due_date' ? value as string : todo.due_date;
+          
+          if (startDate && dueDate && startDate > dueDate) {
+            if (key === 'start_date') {
+              updatedTodo.due_date = value as string;
             }
-            
-            if (key === 'progress' && value === 100) {
-              updatedTodo.completed_flg = true;
+            if (key === 'due_date') {
+              return todo;  
             }
-            return updatedTodo;
-          } else {
-            return todo;
           }
-        });
-    
-        return newTodos;
-      });
-    };
+        }
+        
+        // 進捗率が100%の場合の処理
+        if (key === 'progress' && value === 100) {
+          updatedTodo.completed_flg = true;
+        }
+        
+        return updatedTodo;
+      } else {
+        return todo;
+      }
+    });
+      
+      return newTodos;
+    });
+  };
 
     const handleEmpty = () => {
       setTodos((todos) => todos.filter((todo) => !todo.delete_flg));
@@ -628,7 +636,17 @@ const TodoApp: React.FC = () => {
                   <button 
                     className={todo.delete_flg ? 'restore-button' : 'delete-button'}
                     onClick={() => handleTodo(todo.id, 'delete_flg', !todo.delete_flg)}
-                   >
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      backgroundColor: todo.delete_flg ? '#28a745' : '#dc3545',
+                      color: 'white',
+                      minWidth: '50px'
+                    }}
+                  >
                     {todo.delete_flg ? '復元' : '削除'}
                   </button>
                 </div>
@@ -639,7 +657,7 @@ const TodoApp: React.FC = () => {
                 <div style={{ marginTop: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
                   <textarea
-                    value={todo.title}
+                    value={todo.description}
                     onChange={(e) => handleTodo(todo.id, 'description', e.target.value)}
                     disabled={todo.delete_flg || todo.progress === 100}
                     rows={3}
