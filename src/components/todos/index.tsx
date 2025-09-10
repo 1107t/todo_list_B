@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 
 // "Todo" 型の定義をコンポーネント外で行います
 type Todo = {
@@ -15,12 +15,187 @@ type Todo = {
 
 type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 
+// TodoItemコンポーネントを最上位で定義
+const TodoItem: React.FC<{
+  todo: Todo;
+  isExpanded: boolean;
+  onToggleExpanded: (id: number) => void;
+  onUpdateTodo: <K extends keyof Todo, V extends Todo[K]>(id: number, key: K, value: V) => void;
+}> = memo(({ todo, isExpanded, onToggleExpanded, onUpdateTodo }) => {
+  // ローカル状態でdescriptionを管理
+  const [localDescription, setLocalDescription] = useState(todo.description);
+
+  // propsが変更された時のみローカル状態を更新
+  useEffect(() => {
+    setLocalDescription(todo.description);
+  }, [todo.description]);
+
+  return (
+    <li style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
+      <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
+        <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px', backgroundColor: '#f5deb3', padding: '10px', borderRadius: '5px' }}>
+          <div style={{ flex: '0 0 66px', paddingTop: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
+            <select
+              value={todo.progress}
+              onChange={(e) => onUpdateTodo(todo.id, 'progress', Number(e.target.value))}
+              disabled={todo.delete_flg}
+              style={{ 
+                width: '100%', 
+                padding: '6px', 
+                fontSize: '12px', 
+                border: '1px solid #ccc', 
+                borderRadius: '5px',
+                backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white'
+              }}
+            >
+              <option value={0}>0%</option>
+              <option value={10}>10%</option>
+              <option value={20}>20%</option>
+              <option value={30}>30%</option>
+              <option value={40}>40%</option>
+              <option value={50}>50%</option>
+              <option value={60}>60%</option>
+              <option value={70}>70%</option>
+              <option value={80}>80%</option>
+              <option value={90}>90%</option>
+              <option value={100}>100%</option>
+            </select>
+          </div>
+          
+          <div style={{ flex: '0 0 105px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div>
+              <strong>開始日:</strong>
+              <input
+                type="date"
+                value={todo.start_date}
+                onChange={(e) => onUpdateTodo(todo.id, 'start_date', e.target.value)}
+                disabled={todo.delete_flg}
+                style={{ 
+                  marginLeft: '5px', 
+                  padding: '4px 8px', 
+                  fontSize: '11px', 
+                  border: '1px solid #ccc', 
+                  borderRadius: '4px',
+                  backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
+                  width: '95px',
+                  fontFamily: 'Arial, sans-serif',
+                  cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
+                }}
+              />
+            </div>
+            
+            <div>
+              <strong>完了予定:</strong>
+              <input
+                type="date"
+                value={todo.due_date}
+                onChange={(e) => onUpdateTodo(todo.id, 'due_date', e.target.value)}
+                disabled={todo.delete_flg}
+                min={todo.start_date || undefined}
+                style={{ 
+                  marginLeft: '5px', 
+                  padding: '4px 8px', 
+                  fontSize: '11px', 
+                  border: '1px solid #ccc', 
+                  borderRadius: '4px',
+                  backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
+                  width: '95px',
+                  fontFamily: 'Arial, sans-serif',
+                  cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
+                }}
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div style={{ flex: '1', paddingTop: '55px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ flex: '1' }}>
+            <input
+              type="text"
+              value={todo.title}
+              onChange={(e) => onUpdateTodo(todo.id, 'title', e.target.value)}
+              disabled={todo.delete_flg || todo.progress === 100}
+              style={{ 
+                width: 'calc(100% - 10px)', 
+                padding: '6px', 
+                fontSize: '12px', 
+                border: '1px solid #ccc', 
+                borderRadius: '5px',
+                backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="edit-button"
+            onClick={() => onToggleExpanded(todo.id)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              backgroundColor: '#28a745',
+              color: 'white',
+              minWidth: '50px'
+            }}
+          >
+            編集
+          </button>
+          <button 
+            className={todo.delete_flg ? 'restore-button' : 'delete-button'}
+            onClick={() => onUpdateTodo(todo.id, 'delete_flg', !todo.delete_flg)}
+            style={{
+              padding: '6px 12px',
+              fontSize: '12px',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              backgroundColor: todo.delete_flg ? '#28a745' : '#dc3545',
+              color: 'white',
+              minWidth: '50px'
+            }}
+          >
+            {todo.delete_flg ? '復元' : '削除'}
+          </button>
+        </div>
+      </div>
+      
+      {/* 詳細説明の表示・編集 - アコーディオン */}
+      {isExpanded && (
+        <div style={{ marginTop: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
+          <textarea
+            value={localDescription}
+            onChange={(e) => setLocalDescription(e.target.value)}
+            onBlur={() => onUpdateTodo(todo.id, 'description', localDescription)}
+            disabled={todo.delete_flg || todo.progress === 100}
+            rows={3}
+            style={{ 
+              width: '100%', 
+              padding: '8px', 
+              fontSize: '14px', 
+              border: '1px solid #ccc', 
+              borderRadius: '5px',
+              resize: 'vertical',
+              fontFamily: 'Arial, sans-serif',
+              backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
+            }}
+          />
+        </div>
+      )}
+    </li>
+  );
+});
+
 // メインアプリコンポーネント
 const TodoApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<'calendar' | 'todo'>('calendar');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date(2024, 11, 4));
   const [todos, setTodos] = useState<Todo[]>([]); // 全体のTodoリスト
   const [nextId, setNextId] = useState(1);
+  const [expandedTodos, setExpandedTodos] = useState<number[]>([]); // アコーディオン状態を親に移動
 
   // カレンダーコンポーネント
   const CalendarView: React.FC = () => {
@@ -82,7 +257,12 @@ const TodoApp: React.FC = () => {
     };
 
     const getEventsForDate = (date: Date) => {
-      const dateString = date.toISOString().split('T')[0];
+      // ローカル時間で日付文字列を作成
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
       return todos.filter(todo => {
         if (todo.delete_flg) return false;
         const todoStart = todo.start_date;
@@ -293,11 +473,8 @@ const TodoApp: React.FC = () => {
     const [filter, setFilter] = useState<Filter>('all');
     const [currentDate, setCurrentDate] = useState(selectedDate);
     const [showDetailForm, setShowDetailForm] = useState(false);
-    const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
+    // expandedTodos状態を削除（親コンポーネントに移動済み）
 
-    //useEffect(() => {
-    //  console.log('TODO!');
-    //}, []);
     useEffect(() => {
       setCurrentDate(selectedDate);
     }, [selectedDate]);
@@ -334,7 +511,7 @@ const TodoApp: React.FC = () => {
         case 'completed':
           return todos.filter((todo) => todo.progress === 100 && !todo.delete_flg);
         case 'unchecked':
-        return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
+          return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
         case 'delete':
           return todos.filter((todo) => todo.delete_flg);
         default:
@@ -346,47 +523,45 @@ const TodoApp: React.FC = () => {
       setFilter(filter);
     };
 
-    const handleTodo = <K extends keyof Todo, V extends Todo[K]>(
-  id: number,
-  key: K,
-  value: V
-) => {
-   
-  setTodos((todos) => {
-     
-    const newTodos = todos.map((todo) => {
-      if (todo.id === id) {
-        const updatedTodo = { ...todo, [key]: value };
-         
-        // 日付関連の処理は、start_dateまたはdue_dateを更新する場合のみ実行
-        if (key === 'start_date' || key === 'due_date') {
-          const startDate = key === 'start_date' ? value as string : todo.start_date;
-          const dueDate = key === 'due_date' ? value as string : todo.due_date;
-          
-          if (startDate && dueDate && startDate > dueDate) {
-            if (key === 'start_date') {
-              updatedTodo.due_date = value as string;
+    const handleTodo = useCallback(<K extends keyof Todo, V extends Todo[K]>(
+      id: number,
+      key: K,
+      value: V
+    ) => {
+      setTodos((todos) => {
+        const newTodos = todos.map((todo) => {
+          if (todo.id === id) {
+            const updatedTodo = { ...todo, [key]: value };
+            
+            // 日付関連の処理は、start_dateまたはdue_dateを更新する場合のみ実行
+            if (key === 'start_date' || key === 'due_date') {
+              const startDate = key === 'start_date' ? value as string : todo.start_date;
+              const dueDate = key === 'due_date' ? value as string : todo.due_date;
+              
+              if (startDate && dueDate && startDate > dueDate) {
+                if (key === 'start_date') {
+                  updatedTodo.due_date = value as string;
+                }
+                if (key === 'due_date') {
+                  return todo;  
+                }
+              }
             }
-            if (key === 'due_date') {
-              return todo;  
+            
+            // 進捗率が100%の場合の処理
+            if (key === 'progress' && value === 100) {
+              updatedTodo.completed_flg = true;
             }
+            
+            return updatedTodo;
+          } else {
+            return todo;
           }
-        }
+        });
         
-        // 進捗率が100%の場合の処理
-        if (key === 'progress' && value === 100) {
-          updatedTodo.completed_flg = true;
-        }
-        
-        return updatedTodo;
-      } else {
-        return todo;
-      }
-    });
-      
-      return newTodos;
-    });
-  };
+        return newTodos;
+      });
+    }, []);
 
     const handleEmpty = () => {
       setTodos((todos) => todos.filter((todo) => !todo.delete_flg));
@@ -421,13 +596,13 @@ const TodoApp: React.FC = () => {
       return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
     };
 
-    const toggleExpanded = (todoId: number) => {
+    const toggleExpanded = useCallback((todoId: number) => {
       setExpandedTodos(prev => 
         prev.includes(todoId) 
           ? prev.filter(id => id !== todoId)
           : [...prev, todoId]
       );
-    };
+    }, []);
 
     return (
       <div className="todo-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>        
@@ -529,152 +704,13 @@ const TodoApp: React.FC = () => {
         
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {getFilteredTodos().map((todo) => (
-            <li key={todo.id} style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
-              <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
-                <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px', backgroundColor: '#f5deb3', padding: '10px', borderRadius: '5px' }}>
-                  <div style={{ flex: '0 0 66px', paddingTop: '15px' }}>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
-                    <select
-                      value={todo.progress}
-                      onChange={(e) => handleTodo(todo.id, 'progress', Number(e.target.value))}
-                      disabled={todo.delete_flg}
-                      style={{ 
-                        width: '100%', 
-                        padding: '6px', 
-                        fontSize: '12px', 
-                        border: '1px solid #ccc', 
-                        borderRadius: '5px',
-                        backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white'
-                      }}
-                    >
-                      <option value={0}>0%</option>
-                      <option value={10}>10%</option>
-                      <option value={20}>20%</option>
-                      <option value={30}>30%</option>
-                      <option value={40}>40%</option>
-                      <option value={50}>50%</option>
-                      <option value={60}>60%</option>
-                      <option value={70}>70%</option>
-                      <option value={80}>80%</option>
-                      <option value={90}>90%</option>
-                      <option value={100}>100%</option>
-                    </select>
-                  </div>
-                  
-                  <div style={{ flex: '0 0 105px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <div>
-                      <strong>開始日:</strong>
-                      <input
-                        type="date"
-                        value={todo.start_date}
-                        onChange={(e) => handleTodo(todo.id, 'start_date', e.target.value)}
-                        disabled={todo.delete_flg}
-                        style={{ 
-                          marginLeft: '5px', 
-                          padding: '4px 8px', 
-                          fontSize: '11px', 
-                          border: '1px solid #ccc', 
-                          borderRadius: '4px',
-                          backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                          width: '95px',
-                          fontFamily: 'Arial, sans-serif',
-                          cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
-                        }}
-                      />
-                    </div>
-                    
-                    <div>
-                      <strong>完了予定:</strong>
-                      <input
-                        type="date"
-                        value={todo.due_date}
-                        onChange={(e) => handleTodo(todo.id, 'due_date', e.target.value)}
-                        disabled={todo.delete_flg}
-                        min={todo.start_date || undefined}
-                        style={{ 
-                          marginLeft: '5px', 
-                          padding: '4px 8px', 
-                          fontSize: '11px', 
-                          border: '1px solid #ccc', 
-                          borderRadius: '4px',
-                          backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                          width: '95px',
-                          fontFamily: 'Arial, sans-serif',
-                          cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                
-                <div style={{ flex: '1', paddingTop: '55px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                  <div style={{ flex: '1' }}>
-                    <input
-                      type="text"
-                      value={todo.title}
-                      onChange={(e) => handleTodo(todo.id, 'title', e.target.value)}
-                      disabled={todo.delete_flg || todo.progress === 100}
-                      style={{ 
-                        width: 'calc(100% - 10px)', 
-                        padding: '6px', 
-                        fontSize: '12px', 
-                        border: '1px solid #ccc', 
-                        borderRadius: '5px',
-                        backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
-                      }}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="edit-button"
-                    onClick={() => {
-                      toggleExpanded(todo.id);
-                    }}
-                  >
-                    編集
-                  </button>
-                  <button 
-                    className={todo.delete_flg ? 'restore-button' : 'delete-button'}
-                    onClick={() => handleTodo(todo.id, 'delete_flg', !todo.delete_flg)}
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      backgroundColor: todo.delete_flg ? '#28a745' : '#dc3545',
-                      color: 'white',
-                      minWidth: '50px'
-                    }}
-                  >
-                    {todo.delete_flg ? '復元' : '削除'}
-                  </button>
-                </div>
-              </div>
-              
-              {/* 詳細説明の表示・編集 - アコーディオン */}
-              {expandedTodos.includes(todo.id) && (
-                <div style={{ marginTop: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
-                  <textarea
-                    value={todo.description}
-                    onChange={(e) => handleTodo(todo.id, 'description', e.target.value)}
-                    disabled={todo.delete_flg || todo.progress === 100}
-                    rows={3}
-                    style={{ 
-                      width: '100%', 
-                      padding: '8px', 
-                      fontSize: '14px', 
-                      border: '1px solid #ccc', 
-                      borderRadius: '5px',
-                      resize: 'vertical',
-                      fontFamily: 'Arial, sans-serif',
-                      backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
-                    }}
-                  />
-                </div>
-              )}
-            </li>
+            <TodoItem
+              key={todo.id}
+              todo={todo}
+              isExpanded={expandedTodos.includes(todo.id)}
+              onToggleExpanded={toggleExpanded}
+              onUpdateTodo={handleTodo}
+            />
           ))}
         </ul>
         
