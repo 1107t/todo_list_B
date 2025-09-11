@@ -192,14 +192,14 @@ const TodoItem: React.FC<{
 // メインアプリコンポーネント
 const TodoApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<'calendar' | 'todo'>('calendar');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(2024, 11, 4));
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [todos, setTodos] = useState<Todo[]>([]); // 全体のTodoリスト
   const [nextId, setNextId] = useState(1);
   const [expandedTodos, setExpandedTodos] = useState<number[]>([]); // アコーディオン状態を親に移動
 
   // カレンダーコンポーネント
   const CalendarView: React.FC = () => {
-    const [currentDate, setCurrentDate] = useState(selectedDate);
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -465,15 +465,14 @@ const TodoApp: React.FC = () => {
     const [startNote, setStartNote] = useState('');
     const [progress, setProgress] = useState(0);
     const [startDate, setStartDate] = useState(() => {
-        return new Date(2024, 11, 5).toISOString().split('T')[0];
+        return new Date().toISOString().split('T')[0];
       });
       const [dueDate, setDueDate] = useState(() => {
-        return new Date(2024, 11, 5).toISOString().split('T')[0];
+        return new Date().toISOString().split('T')[0];
       });
     const [filter, setFilter] = useState<Filter>('all');
     const [currentDate, setCurrentDate] = useState(selectedDate);
     const [showDetailForm, setShowDetailForm] = useState(false);
-    // expandedTodos状態を削除（親コンポーネントに移動済み）
 
     useEffect(() => {
       setCurrentDate(selectedDate);
@@ -500,23 +499,43 @@ const TodoApp: React.FC = () => {
       setDescription('');
       setStartNote('');
       setProgress(0);
-      const dateString = new Date(2024, 11, 5).toISOString().split('T')[0];
+      const dateString = new Date().toISOString().split('T')[0];
       setStartDate(dateString);
       setDueDate(dateString);
       setShowDetailForm(false);
     };
 
     const getFilteredTodos = () => {
+      // 現在選択されている日付の文字列を作成
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      const currentDateString = `${year}-${month}-${day}`;
+
+      let filteredTodos = [];
+      
       switch (filter) {
         case 'completed':
-          return todos.filter((todo) => todo.progress === 100 && !todo.delete_flg);
+          filteredTodos = todos.filter((todo) => todo.progress === 100 && !todo.delete_flg);
+          break;
         case 'unchecked':
-          return todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
+          filteredTodos = todos.filter((todo) => todo.progress < 100 && !todo.delete_flg);
+          break;
         case 'delete':
-          return todos.filter((todo) => todo.delete_flg);
+          filteredTodos = todos.filter((todo) => todo.delete_flg);
+          break;
         default:
-          return todos.filter((todo) => !todo.delete_flg);
+          filteredTodos = todos.filter((todo) => !todo.delete_flg);
       }
+
+      // 削除されたタスク以外は、選択した日付がタスクの期間内にあるかをチェック
+      if (filter !== 'delete') {
+        filteredTodos = filteredTodos.filter((todo) => {
+          return currentDateString >= todo.start_date && currentDateString <= todo.due_date;
+        });
+      }
+
+      return filteredTodos;
     };
 
     const handleFilterChange = (filter: Filter) => {
