@@ -71,6 +71,7 @@ const TodoItem: React.FC<{
                 value={todo.start_date}
                 onChange={(e) => onUpdateTodo(todo.id, 'start_date', e.target.value)}
                 disabled={todo.delete_flg}
+                max={todo.due_date || undefined}
                 style={{ 
                   marginLeft: '5px', 
                   padding: '4px 8px', 
@@ -464,18 +465,35 @@ const TodoApp: React.FC = () => {
     const [description, setDescription] = useState('');
     const [startNote, setStartNote] = useState('');
     const [progress, setProgress] = useState(0);
+    
+    // 選択された日付でタスクが作成されるようにstartDateとdueDateを初期化
     const [startDate, setStartDate] = useState(() => {
-        return new Date().toISOString().split('T')[0];
-      });
-      const [dueDate, setDueDate] = useState(() => {
-        return new Date().toISOString().split('T')[0];
-      });
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    });
+    
+    const [dueDate, setDueDate] = useState(() => {
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    });
+    
     const [filter, setFilter] = useState<Filter>('all');
     const [currentDate, setCurrentDate] = useState(selectedDate);
     const [showDetailForm, setShowDetailForm] = useState(false);
 
+    // selectedDateが変更された時に、startDateとdueDateを更新
     useEffect(() => {
       setCurrentDate(selectedDate);
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      setStartDate(dateString);
+      setDueDate(dateString);
     }, [selectedDate]);
 
     const handleSubmit = () => {
@@ -499,7 +517,11 @@ const TodoApp: React.FC = () => {
       setDescription('');
       setStartNote('');
       setProgress(0);
-      const dateString = new Date().toISOString().split('T')[0];
+      // リセット時も選択された日付を使用
+      const year = selectedDate.getFullYear();
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const day = String(selectedDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
       setStartDate(dateString);
       setDueDate(dateString);
       setShowDetailForm(false);
@@ -531,8 +553,25 @@ const TodoApp: React.FC = () => {
       // 削除されたタスク以外は、選択した日付がタスクの期間内にあるかをチェック
       if (filter !== 'delete') {
         filteredTodos = filteredTodos.filter((todo) => {
-          return currentDateString >= todo.start_date && currentDateString <= todo.due_date;
+          // 開始日と完了予定日が存在するかチェック
+          if (!todo.start_date || !todo.due_date) {
+            return true; // 日付が設定されていない場合は表示
+          }
+          
+          const startDate = todo.start_date;
+          const dueDate = todo.due_date;
+          
+          // 正常な日付範囲の場合
+          if (startDate <= dueDate) {
+            return currentDateString >= startDate && currentDateString <= dueDate;
+          } else {
+            // 開始日が完了予定日より後の場合（異常な状態だが表示はする）
+            return currentDateString >= dueDate && currentDateString <= startDate;
+          }
         });
+      } else {
+        // 削除されたタスクの場合は日付に関係なくすべて表示
+        filteredTodos = todos.filter((todo) => todo.delete_flg);
       }
 
       return filteredTodos;
@@ -551,6 +590,16 @@ const TodoApp: React.FC = () => {
         const newTodos = todos.map((todo) => {
           if (todo.id === id) {
             const updatedTodo = { ...todo, [key]: value };
+            
+            // 復元処理の場合
+            if (key === 'delete_flg' && value === false) {
+              // 復元されたタスクの開始日に移動
+              const restoredTodo = updatedTodo as Todo;
+              if (restoredTodo.start_date) {
+                const taskStartDate = new Date(restoredTodo.start_date);
+                setSelectedDate(taskStartDate);
+              }
+            }
             
             // 日付関連の処理は、start_dateまたはdue_dateを更新する場合のみ実行
             if (key === 'start_date' || key === 'due_date') {
