@@ -1,31 +1,108 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 
-// "Todo" 型の定義をコンポーネント外で行います
 type Todo = {
   title: string;
   readonly id: number;
   completed_flg: boolean;
   delete_flg: boolean;
-  progress: number; // 進捗率 (0-100)
-  start_date: string; // 開始日 (YYYY-MM-DD)
-  due_date: string; // 完了予定日 (YYYY-MM-DD)
-  description: string; // 詳細説明
-  start_note: string; // 開始日メモ
+  progress: number;
+  start_date: string;
+  due_date: string;
+  description: string;
+  start_note: string;
 };
 
 type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 
-// TodoItemコンポーネントを最上位で定義
-const TodoItem: React.FC<{
+interface SearchFormProps {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  searchResults: Todo[];
+}
+
+const SearchForm: React.FC<SearchFormProps> = (props) => {
+  const { searchQuery, onSearchChange, searchResults } = props;
+  const [localQuery, setLocalQuery] = useState(searchQuery);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setLocalQuery(value);
+    onSearchChange(value);
+  };
+
+  const handleClear = () => {
+    setLocalQuery('');
+    onSearchChange('');
+  };
+
+  return (
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 20px 0 20px', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '10px',
+          backgroundColor: 'white',
+          padding: '10px 15px',
+          borderRadius: '10px',
+          border: '2px solid #ddd',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <input
+            type="text"
+            placeholder="Todoを検索..."
+            value={localQuery}
+            onChange={handleInputChange}
+            style={{
+              border: 'none',
+              outline: 'none',
+              fontSize: '16px',
+              width: '300px',
+              backgroundColor: 'transparent'
+            }}
+          />
+          {localQuery && (
+            <button
+              onClick={handleClear}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: '#666',
+                padding: '0 5px'
+              }}
+              title="検索をクリア"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        
+        {localQuery && (
+          <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+            {searchResults.length > 0 
+              ? `${searchResults.length}件のタスクが見つかりました（ハイライト表示）`
+              : '該当するタスクが見つかりません'
+            }
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface TodoItemProps {
   todo: Todo;
   isExpanded: boolean;
   onToggleExpanded: (id: number) => void;
-  onUpdateTodo: <K extends keyof Todo, V extends Todo[K]>(id: number, key: K, value: V) => void;
-}> = memo(({ todo, isExpanded, onToggleExpanded, onUpdateTodo }) => {
-  // ローカル状態でdescriptionを管理
+  onUpdateTodo: (id: number, key: keyof Todo, value: any) => void;
+}
+
+const TodoItem: React.FC<TodoItemProps> = (props) => {
+  const { todo, isExpanded, onToggleExpanded, onUpdateTodo } = props;
   const [localDescription, setLocalDescription] = useState(todo.description);
 
-  // propsが変更された時のみローカル状態を更新
   useEffect(() => {
     setLocalDescription(todo.description);
   }, [todo.description]);
@@ -163,7 +240,6 @@ const TodoItem: React.FC<{
         </div>
       </div>
       
-      {/* 詳細説明の表示・編集 - アコーディオン */}
       {isExpanded && (
         <div style={{ marginTop: '15px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
@@ -188,19 +264,21 @@ const TodoItem: React.FC<{
       )}
     </li>
   );
-});
+};
 
-// メインアプリコンポーネント
 const TodoApp: React.FC = () => {
   const [currentView, setCurrentView] = useState<'calendar' | 'todo'>('calendar');
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [todos, setTodos] = useState<Todo[]>([]); // 全体のTodoリスト
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [todos, setTodos] = useState<Todo[]>([]);
   const [nextId, setNextId] = useState(1);
-  const [expandedTodos, setExpandedTodos] = useState<number[]>([]); // アコーディオン状態を親に移動
-  const [searchQuery, setSearchQuery] = useState(''); // 検索クエリ
+  const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const handleSearchQueryChange = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
 
-  // 検索に一致するTodoを取得する関数
-  const getSearchedTodos = () => {
+  const getSearchedTodos = useMemo(() => {
     if (!searchQuery.trim()) {
       return [];
     }
@@ -210,41 +288,37 @@ const TodoApp: React.FC = () => {
       !todo.delete_flg && (
         todo.title.toLowerCase().replace(/\s+/g, '').includes(query) ||
         todo.description.toLowerCase().replace(/\s+/g, '').includes(query) ||
-        // 部分一致での曖昧検索
         query.split('').every(char => 
           todo.title.toLowerCase().includes(char) || 
           todo.description.toLowerCase().includes(char)
         )
       )
     );
-  };
+  }, [searchQuery, todos]);
 
-  // 検索結果のタスクがある日付を取得する関数
-  const getSearchHighlightDates = () => {
-    const searchedTodos = getSearchedTodos();
-    const highlightDates = new Set<string>();
-
-    searchedTodos.forEach(todo => {
-      const startDate = new Date(todo.start_date);
-      const endDate = new Date(todo.due_date);
-      
-      // 開始日から終了日までの全ての日付を追加
-      const currentDate = new Date(startDate);
-      while (currentDate <= endDate) {
-        const year = currentDate.getFullYear();
-        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-        const day = String(currentDate.getDate()).padStart(2, '0');
-        highlightDates.add(`${year}-${month}-${day}`);
-        currentDate.setDate(currentDate.getDate() + 1);
-      }
-    });
-
-    return highlightDates;
-  };
-
-  // カレンダーコンポーネント
   const CalendarView: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
+
+    const searchHighlightDates = useMemo(() => {
+      if (!searchQuery.trim()) return new Set<string>();
+      
+      const highlightDates = new Set<string>();
+      getSearchedTodos.forEach(todo => {
+        const startDate = new Date(todo.start_date);
+        const endDate = new Date(todo.due_date);
+        
+        const currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
+          const year = currentDate.getFullYear();
+          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+          const day = String(currentDate.getDate()).padStart(2, '0');
+          highlightDates.add(`${year}-${month}-${day}`);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      });
+      
+      return highlightDates;
+    }, [getSearchedTodos, searchQuery]);
 
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -260,9 +334,8 @@ const TodoApp: React.FC = () => {
       const daysInMonth = lastDay.getDate();
       const startingDayOfWeek = firstDay.getDay();
       
-      const days = [];
+      const days: { date: Date; isCurrentMonth: boolean }[] = [];
       
-      // 前月の日付を追加
       for (let i = startingDayOfWeek - 1; i >= 0; i--) {
         const prevDate = new Date(year, month, -i);
         days.push({
@@ -271,7 +344,6 @@ const TodoApp: React.FC = () => {
         });
       }
       
-      // 当月の日付を追加
       for (let day = 1; day <= daysInMonth; day++) {
         days.push({
           date: new Date(year, month, day),
@@ -279,7 +351,6 @@ const TodoApp: React.FC = () => {
         });
       }
       
-      // 次月の日付を追加（42日になるまで）
       const remainingDays = 42 - days.length;
       for (let day = 1; day <= remainingDays; day++) {
         days.push({
@@ -302,18 +373,24 @@ const TodoApp: React.FC = () => {
     };
 
     const getEventsForDate = (date: Date) => {
-      // ローカル時間で日付文字列を作成
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       
-      return todos.filter(todo => {
+      let filteredTodos = todos.filter(todo => {
         if (todo.delete_flg) return false;
         const todoStart = todo.start_date;
         const todoEnd = todo.due_date;
         return dateString >= todoStart && dateString <= todoEnd;
       });
+
+      if (searchQuery.trim()) {
+        const searchedIds = new Set(getSearchedTodos.map(todo => todo.id));
+        filteredTodos = filteredTodos.filter(todo => searchedIds.has(todo.id));
+      }
+
+      return filteredTodos;
     };
 
     const isToday = (date: Date) => {
@@ -329,70 +406,13 @@ const TodoApp: React.FC = () => {
       const day = String(date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       
-      return getSearchHighlightDates().has(dateString);
-    };
-
-    const clearSearch = () => {
-      setSearchQuery('');
+      return searchHighlightDates.has(dateString);
     };
 
     const days = getDaysInMonth(currentDate);
 
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        {/* 検索フォーム */}
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '10px',
-            backgroundColor: 'white',
-            padding: '10px 15px',
-            borderRadius: '10px',
-            border: '2px solid #ddd',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <input
-              type="text"
-              placeholder="Todoを検索..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                border: 'none',
-                outline: 'none',
-                fontSize: '16px',
-                width: '300px',
-                backgroundColor: 'transparent'
-              }}
-            />
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  color: '#666',
-                  padding: '0 5px'
-                }}
-                title="検索をクリア"
-              >
-                ×
-              </button>
-            )}
-          </div>
-          
-          {searchQuery && (
-            <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-              {getSearchedTodos().length > 0 
-                ? `${getSearchedTodos().length}件のタスクが見つかりました（ハイライト表示）`
-                : '該当するタスクが見つかりません'
-              }
-            </div>
-          )}
-        </div>
-
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
@@ -448,7 +468,6 @@ const TodoApp: React.FC = () => {
           </div>
         </div>
 
-        {/* カレンダーグリッド */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(7, 1fr)',
@@ -458,7 +477,6 @@ const TodoApp: React.FC = () => {
           borderRadius: '8px',
           overflow: 'hidden'
         }}>
-          {/* 曜日ヘッダー */}
           {['日', '月', '火', '水', '木', '金', '土'].map(day => (
             <div key={day} style={{
               backgroundColor: '#f8f9fa',
@@ -472,7 +490,6 @@ const TodoApp: React.FC = () => {
             </div>
           ))}
           
-          {/* 日付セル */}
           {days.map((day, index) => {
             const events = getEventsForDate(day.date);
             const todayFlag = isToday(day.date);
@@ -487,7 +504,7 @@ const TodoApp: React.FC = () => {
                 }}
                 style={{
                   backgroundColor: searchHighlighted 
-                    ? '#fff3cd' // 検索ハイライト（薄い黄色）
+                    ? '#fff3cd'
                     : day.isCurrentMonth ? 'white' : '#f8f9fa',
                   minHeight: '100px',
                   padding: '8px',
@@ -495,16 +512,6 @@ const TodoApp: React.FC = () => {
                   position: 'relative',
                   border: todayFlag ? '2px solid #ff8c00' : searchHighlighted ? '2px solid #ffc107' : 'none',
                   transition: 'background-color 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (day.isCurrentMonth) {
-                    e.currentTarget.style.backgroundColor = searchHighlighted ? '#fff3cd' : '#f0f0f0';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (day.isCurrentMonth) {
-                    e.currentTarget.style.backgroundColor = searchHighlighted ? '#fff3cd' : 'white';
-                  }
                 }}
               >
                 <div style={{
@@ -533,7 +540,7 @@ const TodoApp: React.FC = () => {
                       style={{
                         width: '6px',
                         height: '6px',
-                        backgroundColor: '#003366', // 紺色
+                        backgroundColor: '#003366',
                         borderRadius: '50%',
                         marginRight: '4px',
                         flexShrink: 0
@@ -563,7 +570,6 @@ const TodoApp: React.FC = () => {
           })}
         </div>
 
-        {/* 凡例 */}
         <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
             <div style={{ width: '6px', height: '6px', backgroundColor: '#003366', borderRadius: '50%' }}></div>
@@ -580,14 +586,12 @@ const TodoApp: React.FC = () => {
     );
   };
 
-  // Todo コンポーネント
   const TodoView: React.FC = () => {
     const [text, setText] = useState('');
     const [description, setDescription] = useState('');
     const [startNote, setStartNote] = useState('');
     const [progress, setProgress] = useState(0);
     
-    // 選択された日付でタスクが作成されるようにstartDateとdueDateを初期化
     const [startDate, setStartDate] = useState(() => {
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -604,9 +608,7 @@ const TodoApp: React.FC = () => {
     
     const [filter, setFilter] = useState<Filter>('all');
     const [currentDate, setCurrentDate] = useState(selectedDate);
-    const [showDetailForm, setShowDetailForm] = useState(false);
 
-    // selectedDateが変更された時に、startDateとdueDateを更新
     useEffect(() => {
       setCurrentDate(selectedDate);
       const year = selectedDate.getFullYear();
@@ -638,24 +640,21 @@ const TodoApp: React.FC = () => {
       setDescription('');
       setStartNote('');
       setProgress(0);
-      // リセット時も選択された日付を使用
       const year = selectedDate.getFullYear();
       const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       setStartDate(dateString);
       setDueDate(dateString);
-      setShowDetailForm(false);
     };
 
     const getFilteredTodos = () => {
-      // 現在選択されている日付の文字列を作成
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
       const day = String(currentDate.getDate()).padStart(2, '0');
       const currentDateString = `${year}-${month}-${day}`;
 
-      let filteredTodos = [];
+      let filteredTodos: Todo[] = [];
       
       switch (filter) {
         case 'completed':
@@ -671,27 +670,22 @@ const TodoApp: React.FC = () => {
           filteredTodos = todos.filter((todo) => !todo.delete_flg);
       }
 
-      // 削除されたタスク以外は、選択した日付がタスクの期間内にあるかをチェック
       if (filter !== 'delete') {
         filteredTodos = filteredTodos.filter((todo) => {
-          // 開始日と完了予定日が存在するかチェック
           if (!todo.start_date || !todo.due_date) {
-            return true; // 日付が設定されていない場合は表示
+            return true;
           }
           
           const startDate = todo.start_date;
           const dueDate = todo.due_date;
           
-          // 正常な日付範囲の場合
           if (startDate <= dueDate) {
             return currentDateString >= startDate && currentDateString <= dueDate;
           } else {
-            // 開始日が完了予定日より後の場合（異常な状態だが表示はする）
             return currentDateString >= dueDate && currentDateString <= startDate;
           }
         });
       } else {
-        // 削除されたタスクの場合は日付に関係なくすべて表示
         filteredTodos = todos.filter((todo) => todo.delete_flg);
       }
 
@@ -702,34 +696,27 @@ const TodoApp: React.FC = () => {
       setFilter(filter);
     };
 
-    const handleTodo = useCallback(<K extends keyof Todo, V extends Todo[K]>(
-      id: number,
-      key: K,
-      value: V
-    ) => {
+    const handleTodo = useCallback((id: number, key: keyof Todo, value: any) => {
       setTodos((todos) => {
         const newTodos = todos.map((todo) => {
           if (todo.id === id) {
             const updatedTodo = { ...todo, [key]: value };
             
-            // 復元処理の場合
             if (key === 'delete_flg' && value === false) {
-              // 復元されたタスクの開始日に移動
-              const restoredTodo = updatedTodo as Todo;
+              const restoredTodo = updatedTodo;
               if (restoredTodo.start_date) {
                 const taskStartDate = new Date(restoredTodo.start_date);
                 setSelectedDate(taskStartDate);
               }
             }
             
-            // 日付関連の処理は、start_dateまたはdue_dateを更新する場合のみ実行
             if (key === 'start_date' || key === 'due_date') {
-              const startDate = key === 'start_date' ? value as string : todo.start_date;
-              const dueDate = key === 'due_date' ? value as string : todo.due_date;
+              const startDate = key === 'start_date' ? value : todo.start_date;
+              const dueDate = key === 'due_date' ? value : todo.due_date;
               
               if (startDate && dueDate && startDate > dueDate) {
                 if (key === 'start_date') {
-                  updatedTodo.due_date = value as string;
+                  updatedTodo.due_date = value;
                 }
                 if (key === 'due_date') {
                   return todo;  
@@ -737,7 +724,6 @@ const TodoApp: React.FC = () => {
               }
             }
             
-            // 進捗率が100%の場合の処理
             if (key === 'progress' && value === 100) {
               updatedTodo.completed_flg = true;
             }
@@ -779,12 +765,6 @@ const TodoApp: React.FC = () => {
       return `${year}年${month}月${day}日`;
     };
 
-    const formatDateString = (dateString: string) => {
-      if (!dateString) return '';
-      const date = new Date(dateString);
-      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
-    };
-
     const toggleExpanded = useCallback((todoId: number) => {
       setExpandedTodos(prev => 
         prev.includes(todoId) 
@@ -794,43 +774,36 @@ const TodoApp: React.FC = () => {
     }, []);
 
     return (
-      <div className="todo-container" style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>        
-        <div className="date-display" style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>        
+        <div style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '20px' }}>
           {formatDate(currentDate)}
         </div>
         
-        <div className="navigation-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '5px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', marginBottom: '20px' }}>
           <button
-            className="nav-button prev-button"
             onClick={handlePreviousDay}
-            title="前の日"
             style={{ padding: '10px 20px', backgroundColor: '#ff8c00', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
           >
             ← 前の日
           </button>
           
           <button
-            className="nav-button back-button"
             onClick={handleBackToCalendar}
-            title="カレンダーに戻る"
             style={{ padding: '10px 20px', backgroundColor: '#ff8c00', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
           >
             カレンダーに戻る
           </button>
           
           <button
-            className="nav-button next-button"
             onClick={handleNextDay}
-            title="次の日"
             style={{ padding: '10px 20px', backgroundColor: '#ff8c00', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
           >
             次の日 →
           </button>
         </div>
         
-        <div className="filter-container" style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           <select
-            className="filter-select"
             value={filter}
             onChange={(e) => handleFilterChange(e.target.value as Filter)}
             style={{ padding: '8px 12px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px', width: 'calc(100% - 20px)' }}
@@ -849,7 +822,6 @@ const TodoApp: React.FC = () => {
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>タスク名</label>
               <input
                 type="text"
-                className="task-input"
                 placeholder="新しいタスクを入力..."
                 value={text}
                 onChange={(e) => setText(e.target.value)}
@@ -882,7 +854,6 @@ const TodoApp: React.FC = () => {
           <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <button 
               type="button"
-              className="empty-button"
               onClick={handleEmpty}
               style={{ padding: '10px 20px', backgroundColor: '#ff8c00', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
             >
@@ -904,7 +875,7 @@ const TodoApp: React.FC = () => {
         </ul>
         
         {getFilteredTodos().length === 0 && (
-          <div className="empty-message" style={{ textAlign: 'center', color: '#666', fontSize: '18px', padding: '40px' }}>
+          <div style={{ textAlign: 'center', color: '#666', fontSize: '18px', padding: '40px' }}>
             {filter === 'delete' ? 'ごみ箱は空です' : 'タスクがありません'}
           </div>
         )}
@@ -914,6 +885,14 @@ const TodoApp: React.FC = () => {
 
   return (
     <div>
+      {currentView === 'calendar' && (
+        <SearchForm
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchQueryChange}
+          searchResults={getSearchedTodos}
+        />
+      )}
+      
       {currentView === 'calendar' ? <CalendarView /> : <TodoView />}
     </div>
   );
