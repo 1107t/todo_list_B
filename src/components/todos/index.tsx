@@ -107,6 +107,13 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
     setLocalDescription(todo.description);
   }, [todo.description]);
 
+  const handleMarkClick = () => {
+    // マークボタンの処理をここに追加
+    console.log('マークボタンがクリックされました:', todo.id);
+  };
+
+  
+
   return (
     <li style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
       <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
@@ -260,6 +267,24 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
               backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
             }}
           />
+          <div style={{ marginTop: '10px', textAlign: 'left' }}>
+            <button
+              type="button"
+              onClick={handleMarkClick}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                border: '1px solid #28a745',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                backgroundColor: todo.delete_flg ? '#f5f5f5' : '#28a745',
+                color: todo.delete_flg ? '#999' : 'white'
+              }}
+              disabled={todo.delete_flg}
+            >
+              マーク
+            </button>
+          </div>
         </div>
       )}
     </li>
