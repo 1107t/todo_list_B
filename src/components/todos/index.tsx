@@ -197,6 +197,50 @@ const TodoApp: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]); // 全体のTodoリスト
   const [nextId, setNextId] = useState(1);
   const [expandedTodos, setExpandedTodos] = useState<number[]>([]); // アコーディオン状態を親に移動
+  const [searchQuery, setSearchQuery] = useState(''); // 検索クエリ
+
+  // 検索に一致するTodoを取得する関数
+  const getSearchedTodos = () => {
+    if (!searchQuery.trim()) {
+      return [];
+    }
+    
+    const query = searchQuery.toLowerCase().replace(/\s+/g, '');
+    return todos.filter(todo => 
+      !todo.delete_flg && (
+        todo.title.toLowerCase().replace(/\s+/g, '').includes(query) ||
+        todo.description.toLowerCase().replace(/\s+/g, '').includes(query) ||
+        // 部分一致での曖昧検索
+        query.split('').every(char => 
+          todo.title.toLowerCase().includes(char) || 
+          todo.description.toLowerCase().includes(char)
+        )
+      )
+    );
+  };
+
+  // 検索結果のタスクがある日付を取得する関数
+  const getSearchHighlightDates = () => {
+    const searchedTodos = getSearchedTodos();
+    const highlightDates = new Set<string>();
+
+    searchedTodos.forEach(todo => {
+      const startDate = new Date(todo.start_date);
+      const endDate = new Date(todo.due_date);
+      
+      // 開始日から終了日までの全ての日付を追加
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const year = currentDate.getFullYear();
+        const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+        const day = String(currentDate.getDate()).padStart(2, '0');
+        highlightDates.add(`${year}-${month}-${day}`);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    });
+
+    return highlightDates;
+  };
 
   // カレンダーコンポーネント
   const CalendarView: React.FC = () => {
@@ -277,10 +321,78 @@ const TodoApp: React.FC = () => {
       return date.toDateString() === today.toDateString();
     };
 
+    const isSearchHighlighted = (date: Date) => {
+      if (!searchQuery.trim()) return false;
+      
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
+      return getSearchHighlightDates().has(dateString);
+    };
+
+    const clearSearch = () => {
+      setSearchQuery('');
+    };
+
     const days = getDaysInMonth(currentDate);
 
     return (
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+        {/* 検索フォーム */}
+        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+          <div style={{ 
+            display: 'inline-flex', 
+            alignItems: 'center', 
+            gap: '10px',
+            backgroundColor: 'white',
+            padding: '10px 15px',
+            borderRadius: '10px',
+            border: '2px solid #ddd',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <input
+              type="text"
+              placeholder="Todoを検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border: 'none',
+                outline: 'none',
+                fontSize: '16px',
+                width: '300px',
+                backgroundColor: 'transparent'
+              }}
+            />
+            {searchQuery && (
+              <button
+                onClick={clearSearch}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '18px',
+                  color: '#666',
+                  padding: '0 5px'
+                }}
+                title="検索をクリア"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          
+          {searchQuery && (
+            <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+              {getSearchedTodos().length > 0 
+                ? `${getSearchedTodos().length}件のタスクが見つかりました（ハイライト表示）`
+                : '該当するタスクが見つかりません'
+              }
+            </div>
+          )}
+        </div>
+
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
@@ -364,6 +476,7 @@ const TodoApp: React.FC = () => {
           {days.map((day, index) => {
             const events = getEventsForDate(day.date);
             const todayFlag = isToday(day.date);
+            const searchHighlighted = isSearchHighlighted(day.date);
             
             return (
               <div
@@ -373,22 +486,24 @@ const TodoApp: React.FC = () => {
                   setCurrentView('todo');
                 }}
                 style={{
-                  backgroundColor: day.isCurrentMonth ? 'white' : '#f8f9fa',
+                  backgroundColor: searchHighlighted 
+                    ? '#fff3cd' // 検索ハイライト（薄い黄色）
+                    : day.isCurrentMonth ? 'white' : '#f8f9fa',
                   minHeight: '100px',
                   padding: '8px',
                   cursor: 'pointer',
                   position: 'relative',
-                  border: todayFlag ? '2px solid #ff8c00' : 'none',
+                  border: todayFlag ? '2px solid #ff8c00' : searchHighlighted ? '2px solid #ffc107' : 'none',
                   transition: 'background-color 0.2s ease'
                 }}
                 onMouseEnter={(e) => {
                   if (day.isCurrentMonth) {
-                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                    e.currentTarget.style.backgroundColor = searchHighlighted ? '#fff3cd' : '#f0f0f0';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (day.isCurrentMonth) {
-                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.backgroundColor = searchHighlighted ? '#fff3cd' : 'white';
                   }
                 }}
               >
@@ -454,6 +569,12 @@ const TodoApp: React.FC = () => {
             <div style={{ width: '6px', height: '6px', backgroundColor: '#003366', borderRadius: '50%' }}></div>
             <span style={{ fontSize: '14px' }}>タスク</span>
           </div>
+          {searchQuery && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '12px', height: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '2px' }}></div>
+              <span style={{ fontSize: '14px' }}>検索結果</span>
+            </div>
+          )}
         </div>
       </div>
     );
