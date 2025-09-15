@@ -415,7 +415,7 @@ const TodoApp: React.FC = () => {
       if (parts.length === 2) {
         return (
           <>
-            {parts[0]}「
+            「
             <a 
               href="http://example.com" 
               target="_blank" 
@@ -424,7 +424,7 @@ const TodoApp: React.FC = () => {
             >
               セキュリティガイドライン
             </a>
-            」{parts[1].replace('(http://example.com)', '')}
+            」{parts[1].replace('(http://example.com)', '')}に準拠すること
           </>
         );
       }
@@ -433,23 +433,7 @@ const TodoApp: React.FC = () => {
 
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <button
-            onClick={handleBackToTodo}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#ff8c00',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '16px'
-            }}
-          >
-            タスク一覧に戻る
-          </button>
-        </div>
-
+        
         <div style={{ 
           backgroundColor: 'white', 
           padding: '30px', 
@@ -464,20 +448,20 @@ const TodoApp: React.FC = () => {
             borderBottom: '2px solid #333',
             paddingBottom: '5px'
           }}>
-            ▼ プロジェクト管理システム導入
+            プロジェクト管理システム導入
           </h1>
 
           {/* 概要 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 概要</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>概要</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               <div style={{ marginBottom: '5px' }}>
-                <strong>**期限**:</strong> {projectDetail.deadline}
+                <strong>期限:</strong> {projectDetail.deadline}
               </div>
               <div style={{ marginBottom: '10px' }}>
-                <strong>**責任者**:</strong> {projectDetail.responsible}
+                <strong>責任者:</strong> {projectDetail.responsible}
               </div>
-              <div>
+              <div style={{ marginLeft: '40px' }}>
                 {projectDetail.description}
               </div>
             </div>
@@ -485,11 +469,11 @@ const TodoApp: React.FC = () => {
 
           {/* 実装項目 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 実装項目</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>実装項目</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.implementation_items.map((item, index) => (
                 <div key={index} style={{ marginBottom: '5px' }}>
-                  - {item}
+                  • <span style={{ textDecoration: item === 'レガシーシステムとの連携' ? 'line-through' : 'none' }}>{item}</span>
                 </div>
               ))}
             </div>
@@ -497,7 +481,7 @@ const TodoApp: React.FC = () => {
 
           {/* 必要環境 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 必要環境:</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>必要環境:</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.required_environment.map((env, index) => (
                 <div key={index} style={{ marginBottom: '5px' }}>
@@ -509,7 +493,7 @@ const TodoApp: React.FC = () => {
 
           {/* 進捗 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 進捗</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>進捗</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.progress_items.map((item, index) => (
                 <div key={index} style={{ 
@@ -518,6 +502,7 @@ const TodoApp: React.FC = () => {
                   marginBottom: '8px',
                   cursor: 'pointer'
                 }}>
+                  <span style={{ marginRight: '8px' }}>•</span>
                   <input
                     type="checkbox"
                     checked={item.completed}
@@ -533,8 +518,7 @@ const TodoApp: React.FC = () => {
                     htmlFor={`progress-${index}`}
                     style={{
                       cursor: 'pointer',
-                      textDecoration: item.completed ? 'line-through' : 'none',
-                      color: item.completed ? '#666' : '#333'
+                      color: '#333'
                     }}
                   >
                     {item.item}
@@ -546,9 +530,25 @@ const TodoApp: React.FC = () => {
 
           {/* 注意 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>**注意**:</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>注意:</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {renderNotesWithLink(projectDetail.notes)}
+            </div>
+            <div style={{ marginTop: '10px', textAlign: 'left' }}>
+              <button
+                onClick={handleBackToTodo}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                閉じる
+              </button>
             </div>
           </section>
 
