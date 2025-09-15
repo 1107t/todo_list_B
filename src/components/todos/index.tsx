@@ -12,6 +12,20 @@ type Todo = {
   start_note: string;
 };
 
+type ProjectDetail = {
+  id: number;
+  title: string;
+  overview: string;
+  deadline: string;
+  responsible: string;
+  description: string;
+  implementation_items: string[];
+  required_environment: string[];
+  progress_items: { item: string; completed: boolean }[];
+  notes: string;
+  created_date: string;
+};
+
 type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 
 interface SearchFormProps {
@@ -97,10 +111,11 @@ interface TodoItemProps {
   isExpanded: boolean;
   onToggleExpanded: (id: number) => void;
   onUpdateTodo: (id: number, key: keyof Todo, value: any) => void;
+  onMarkClick: (todo: Todo) => void;
 }
 
 const TodoItem: React.FC<TodoItemProps> = (props) => {
-  const { todo, isExpanded, onToggleExpanded, onUpdateTodo } = props;
+  const { todo, isExpanded, onToggleExpanded, onUpdateTodo, onMarkClick } = props;
   const [localDescription, setLocalDescription] = useState(todo.description);
 
   useEffect(() => {
@@ -108,11 +123,8 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
   }, [todo.description]);
 
   const handleMarkClick = () => {
-    // マークボタンの処理をここに追加
-    console.log('マークボタンがクリックされました:', todo.id);
+    onMarkClick(todo);
   };
-
-  
 
   return (
     <li style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
@@ -292,12 +304,14 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
 };
 
 const TodoApp: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'calendar' | 'todo'>('calendar');
+  const [currentView, setCurrentView] = useState<'calendar' | 'todo' | 'project_detail'>('calendar');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [todos, setTodos] = useState<Todo[]>([]);
   const [nextId, setNextId] = useState(1);
   const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [projectDetails, setProjectDetails] = useState<ProjectDetail[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   
   const handleSearchQueryChange = useCallback((query: string) => {
     setSearchQuery(query);
@@ -320,6 +334,229 @@ const TodoApp: React.FC = () => {
       )
     );
   }, [searchQuery, todos]);
+
+  const handleMarkClick = useCallback((todo: Todo) => {
+    // 画像の仕様書に基づいてプロジェクト詳細データを作成
+    const projectDetail: ProjectDetail = {
+      id: todo.id,
+      title: todo.title,
+      overview: "本プロジェクトは経営層からの重要施策",
+      deadline: "2024年12月20日",
+      responsible: "佐藤健一",
+      description: "本プロジェクトは経営層からの重要施策",
+      implementation_items: [
+        "ユーザー認証機能",
+        "レガシーシステムとの連携",
+        "タスク管理機能"
+      ],
+      required_environment: [
+        "Node.js 18以上",
+        "PostgreSQL 14"
+      ],
+      progress_items: [
+        { item: "要件定義完了", completed: true },
+        { item: "開発環境構築", completed: false },
+        { item: "テスト実施", completed: false }
+      ],
+      notes: "注意：「セキュリティガイドライン」(http://example.com)に準拠すること",
+      created_date: new Date().toISOString().split('T')[0]
+    };
+
+    // プロジェクト詳細を追加（重複チェック）
+    setProjectDetails(prev => {
+      const exists = prev.find(p => p.id === todo.id);
+      if (exists) {
+        return prev;
+      }
+      return [...prev, projectDetail];
+    });
+
+    // 詳細ページに遷移
+    setSelectedProjectId(todo.id);
+    setCurrentView('project_detail');
+  }, []);
+
+  const ProjectDetailView: React.FC = () => {
+    const projectDetail = projectDetails.find(p => p.id === selectedProjectId);
+
+    if (!projectDetail) {
+      return (
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            プロジェクト詳細が見つかりません
+          </div>
+        </div>
+      );
+    }
+
+    const handleBackToTodo = () => {
+      setCurrentView('todo');
+    };
+
+    const toggleProgressItem = (index: number) => {
+      setProjectDetails(prev => 
+        prev.map(project => {
+          if (project.id === selectedProjectId) {
+            const newProgressItems = [...project.progress_items];
+            newProgressItems[index] = {
+              ...newProgressItems[index],
+              completed: !newProgressItems[index].completed
+            };
+            return { ...project, progress_items: newProgressItems };
+          }
+          return project;
+        })
+      );
+    };
+
+    const renderNotesWithLink = (notes: string) => {
+      // notesからセキュリティガイドラインの部分をリンクに変換
+      const parts = notes.split('「セキュリティガイドライン」');
+      if (parts.length === 2) {
+        return (
+          <>
+            {parts[0]}「
+            <a 
+              href="http://example.com" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={{ color: '#0066cc', textDecoration: 'underline' }}
+            >
+              セキュリティガイドライン
+            </a>
+            」{parts[1].replace('(http://example.com)', '')}
+          </>
+        );
+      }
+      return notes;
+    };
+
+    return (
+      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={handleBackToTodo}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#ff8c00',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >
+            タスク一覧に戻る
+          </button>
+        </div>
+
+        <div style={{ 
+          backgroundColor: 'white', 
+          padding: '30px', 
+          borderRadius: '8px', 
+          border: '1px solid #ddd',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <h1 style={{ 
+            fontSize: '24px', 
+            marginBottom: '20px', 
+            color: '#333',
+            borderBottom: '2px solid #333',
+            paddingBottom: '5px'
+          }}>
+            ▼ プロジェクト管理システム導入
+          </h1>
+
+          {/* 概要 */}
+          <section style={{ marginBottom: '25px' }}>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 概要</h2>
+            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
+              <div style={{ marginBottom: '5px' }}>
+                <strong>**期限**:</strong> {projectDetail.deadline}
+              </div>
+              <div style={{ marginBottom: '10px' }}>
+                <strong>**責任者**:</strong> {projectDetail.responsible}
+              </div>
+              <div>
+                {projectDetail.description}
+              </div>
+            </div>
+          </section>
+
+          {/* 実装項目 */}
+          <section style={{ marginBottom: '25px' }}>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 実装項目</h2>
+            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
+              {projectDetail.implementation_items.map((item, index) => (
+                <div key={index} style={{ marginBottom: '5px' }}>
+                  - {item}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 必要環境 */}
+          <section style={{ marginBottom: '25px' }}>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 必要環境:</h2>
+            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
+              {projectDetail.required_environment.map((env, index) => (
+                <div key={index} style={{ marginBottom: '5px' }}>
+                  {env}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 進捗 */}
+          <section style={{ marginBottom: '25px' }}>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 進捗</h2>
+            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
+              {projectDetail.progress_items.map((item, index) => (
+                <div key={index} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  marginBottom: '8px',
+                  cursor: 'pointer'
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={item.completed}
+                    onChange={() => toggleProgressItem(index)}
+                    style={{ 
+                      marginRight: '8px',
+                      transform: 'scale(1.1)',
+                      cursor: 'pointer'
+                    }}
+                    id={`progress-${index}`}
+                  />
+                  <label 
+                    htmlFor={`progress-${index}`}
+                    style={{
+                      cursor: 'pointer',
+                      textDecoration: item.completed ? 'line-through' : 'none',
+                      color: item.completed ? '#666' : '#333'
+                    }}
+                  >
+                    {item.item}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 注意 */}
+          <section style={{ marginBottom: '25px' }}>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>**注意**:</h2>
+            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
+              {renderNotesWithLink(projectDetail.notes)}
+            </div>
+          </section>
+
+          
+        </div>
+      </div>
+    );
+  };
 
   const CalendarView: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -895,6 +1132,7 @@ const TodoApp: React.FC = () => {
               isExpanded={expandedTodos.includes(todo.id)}
               onToggleExpanded={toggleExpanded}
               onUpdateTodo={handleTodo}
+              onMarkClick={handleMarkClick}
             />
           ))}
         </ul>
@@ -918,7 +1156,9 @@ const TodoApp: React.FC = () => {
         />
       )}
       
-      {currentView === 'calendar' ? <CalendarView /> : <TodoView />}
+      {currentView === 'calendar' && <CalendarView />}
+      {currentView === 'todo' && <TodoView />}
+      {currentView === 'project_detail' && <ProjectDetailView />}
     </div>
   );
 };
