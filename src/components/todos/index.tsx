@@ -343,7 +343,7 @@ const TodoApp: React.FC = () => {
       overview: "本プロジェクトは経営層からの重要施策",
       deadline: "2024年12月20日",
       responsible: "佐藤健一",
-      description: "本プロジェクトは経営層からの重要施策",
+      description: "> 本プロジェクトは経営層からの重要施策",
       implementation_items: [
         "ユーザー認証機能",
         "レガシーシステムとの連携",
@@ -393,29 +393,13 @@ const TodoApp: React.FC = () => {
       setCurrentView('todo');
     };
 
-    const toggleProgressItem = (index: number) => {
-      setProjectDetails(prev => 
-        prev.map(project => {
-          if (project.id === selectedProjectId) {
-            const newProgressItems = [...project.progress_items];
-            newProgressItems[index] = {
-              ...newProgressItems[index],
-              completed: !newProgressItems[index].completed
-            };
-            return { ...project, progress_items: newProgressItems };
-          }
-          return project;
-        })
-      );
-    };
-
     const renderNotesWithLink = (notes: string) => {
       // notesからセキュリティガイドラインの部分をリンクに変換
       const parts = notes.split('「セキュリティガイドライン」');
       if (parts.length === 2) {
         return (
           <>
-            「
+            {parts[0]}「
             <a 
               href="http://example.com" 
               target="_blank" 
@@ -424,7 +408,7 @@ const TodoApp: React.FC = () => {
             >
               セキュリティガイドライン
             </a>
-            」{parts[1].replace('(http://example.com)', '')}に準拠すること
+            」{parts[1].replace('(http://example.com)', '')}
           </>
         );
       }
@@ -434,6 +418,7 @@ const TodoApp: React.FC = () => {
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
         
+
         <div style={{ 
           backgroundColor: 'white', 
           padding: '30px', 
@@ -448,20 +433,20 @@ const TodoApp: React.FC = () => {
             borderBottom: '2px solid #333',
             paddingBottom: '5px'
           }}>
-            プロジェクト管理システム導入
+            ▼ プロジェクト管理システム導入
           </h1>
 
           {/* 概要 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>概要</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 概要</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               <div style={{ marginBottom: '5px' }}>
-                <strong>期限:</strong> {projectDetail.deadline}
+                <strong>**期限**:</strong> {projectDetail.deadline}
               </div>
               <div style={{ marginBottom: '10px' }}>
-                <strong>責任者:</strong> {projectDetail.responsible}
+                <strong>**責任者**:</strong> {projectDetail.responsible}
               </div>
-              <div style={{ marginLeft: '40px' }}>
+              <div>
                 {projectDetail.description}
               </div>
             </div>
@@ -469,11 +454,12 @@ const TodoApp: React.FC = () => {
 
           {/* 実装項目 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>実装項目</h2>
+            <div style={{ fontSize: '14px', color: '#333', margin: '20px 0', marginLeft: '10px' }}>---</div>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 実装項目</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.implementation_items.map((item, index) => (
                 <div key={index} style={{ marginBottom: '5px' }}>
-                  • <span style={{ textDecoration: item === 'レガシーシステムとの連携' ? 'line-through' : 'none' }}>{item}</span>
+                  - {item === 'レガシーシステムとの連携' ? `~~${item}~~` : item}
                 </div>
               ))}
             </div>
@@ -481,48 +467,25 @@ const TodoApp: React.FC = () => {
 
           {/* 必要環境 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>必要環境:</h2>
+            <div style={{ fontSize: '14px', color: '#333', margin: '20px 0', marginLeft: '10px' }}>```</div>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 必要環境:</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.required_environment.map((env, index) => (
                 <div key={index} style={{ marginBottom: '5px' }}>
                   {env}
                 </div>
               ))}
+              <div style={{ fontSize: '14px', color: '#333', marginTop: '10px' }}>```</div>
             </div>
           </section>
 
           {/* 進捗 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>進捗</h2>
+            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 進捗</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {projectDetail.progress_items.map((item, index) => (
-                <div key={index} style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  marginBottom: '8px',
-                  cursor: 'pointer'
-                }}>
-                  <span style={{ marginRight: '8px' }}>•</span>
-                  <input
-                    type="checkbox"
-                    checked={item.completed}
-                    onChange={() => toggleProgressItem(index)}
-                    style={{ 
-                      marginRight: '8px',
-                      transform: 'scale(1.1)',
-                      cursor: 'pointer'
-                    }}
-                    id={`progress-${index}`}
-                  />
-                  <label 
-                    htmlFor={`progress-${index}`}
-                    style={{
-                      cursor: 'pointer',
-                      color: '#333'
-                    }}
-                  >
-                    {item.item}
-                  </label>
+                <div key={index} style={{ marginBottom: '5px' }}>
+                  - {item.completed ? '[x]' : '[ ]'} {item.item}
                 </div>
               ))}
             </div>
@@ -530,7 +493,6 @@ const TodoApp: React.FC = () => {
 
           {/* 注意 */}
           <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>注意:</h2>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
               {renderNotesWithLink(projectDetail.notes)}
             </div>
