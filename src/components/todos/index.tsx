@@ -284,7 +284,7 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
               type="button"
               onClick={handleMarkClick}
               style={{
-                padding: '6px 12px',
+                padding: '1px',
                 fontSize: '12px',
                 border: '1px solid #28a745',
                 borderRadius: '4px',
@@ -294,7 +294,7 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
               }}
               disabled={todo.delete_flg}
             >
-              マーク
+              マークダウン表示
             </button>
           </div>
         </div>
