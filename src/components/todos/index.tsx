@@ -683,16 +683,15 @@ const TodoApp: React.FC = () => {
           {/* 注意 */}
           <section style={{ marginBottom: '25px' }}>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              注意：「
               <a 
                 href="http://example.com" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 style={{ color: '#0066cc', textDecoration: 'underline' }}
               >
-                セキュリティガイドライン
+              `注意`：「セキュリティガイドライン」[セキュリティーガイドライン](https://example.com)に準拠すること
               </a>
-              」に準拠すること
+              
             </div>
             <div style={{ marginTop: '10px', textAlign: 'left' }}>
               <button
