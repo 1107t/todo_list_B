@@ -380,8 +380,6 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
             />
           </div>
           
-          {/* 画像ファイル名は詳細説明欄に表示されるため、ここでは表示しない */}
-          
           <div style={{ marginTop: '10px', textAlign: 'left' }}>
             <button
               type="button"
@@ -439,42 +437,18 @@ const TodoApp: React.FC = () => {
   }, [searchQuery, todos]);
 
   const handleMarkClick = useCallback((todo: Todo) => {
-    // 画像も含めてマークダウン形式でプロジェクト詳細データを作成
-    let markdownDescription = "";
-    
-    // タスクに画像がある場合は、マークダウンに画像を追加（引用文なし）
-    if (todo.images && todo.images.length > 0) {
-      markdownDescription += `### ${todo.title}\n`;
-      todo.images.forEach((image, index) => {
-        markdownDescription += `\n![${image.name}](${image.url})\n`;
-      });
-    } else {
-      // 画像がない場合は従来通りの引用文を表示
-      markdownDescription = "> 本プロジェクトは経営層からの重要施策";
-    }
-
+    // 詳細説明の内容をマークダウン形式で表示
     const projectDetail: ProjectDetail = {
       id: todo.id,
       title: todo.title,
-      overview: "本プロジェクトは経営層からの重要施策",
-      deadline: "2024年12月20日",
-      responsible: "佐藤健一",
-      description: markdownDescription,
-      implementation_items: [
-        "ユーザー認証機能",
-        "レガシーシステムとの連携",
-        "タスク管理機能"
-      ],
-      required_environment: [
-        "Node.js 18以上",
-        "PostgreSQL 14"
-      ],
-      progress_items: [
-        { item: "要件定義完了", completed: true },
-        { item: "開発環境構築", completed: false },
-        { item: "テスト実施", completed: false }
-      ],
-      notes: "注意：「セキュリティガイドライン」(http://example.com)に準拠すること",
+      overview: "",
+      deadline: "",
+      responsible: "",
+      description: todo.description, // 詳細設定で入力した内容を表示
+      implementation_items: [],
+      required_environment: [],
+      progress_items: [],
+      notes: "",
       created_date: new Date().toISOString().split('T')[0]
     };
 
@@ -482,7 +456,7 @@ const TodoApp: React.FC = () => {
     setProjectDetails(prev => {
       const exists = prev.find(p => p.id === todo.id);
       if (exists) {
-        // 既存のプロジェクト詳細を更新（画像が変更されている可能性があるため）
+        // 既存のプロジェクト詳細を更新
         return prev.map(p => p.id === todo.id ? projectDetail : p);
       }
       return [...prev, projectDetail];
@@ -604,10 +578,9 @@ const TodoApp: React.FC = () => {
       );
     }
 
-    // 画像がない場合は従来通りの表示
+    // 画像がない場合は詳細説明の内容を表示
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        
         <div style={{ 
           backgroundColor: 'white', 
           padding: '30px', 
@@ -615,103 +588,24 @@ const TodoApp: React.FC = () => {
           border: '1px solid #ddd',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
         }}>
-          <h1 style={{ 
-            fontSize: '24px', 
-            marginBottom: '20px', 
-            color: '#333',
-            borderBottom: '2px solid #333',
-            paddingBottom: '5px'
-          }}>
-            ▼ プロジェクト管理システム導入
-          </h1>
-
-          {/* 概要 */}
-          <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 概要</h2>
-            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              <div style={{ marginBottom: '5px' }}>
-                <strong>**期限**:</strong> {projectDetail.deadline}
-              </div>
-              <div style={{ marginBottom: '10px' }}>
-                <strong>*責任者*:</strong> {projectDetail.responsible}
-              </div>
-              <div>
-                {renderDescription(projectDetail.description)}
-              </div>
-            </div>
-          </section>
-
-          {/* 実装項目 */}
-          <section style={{ marginBottom: '25px' }}>
-            <div style={{ fontSize: '14px', color: '#333', margin: '20px 0', marginLeft: '10px' }}>---</div>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 実装項目</h2>
-            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              {projectDetail.implementation_items.map((item, index) => (
-                <div key={index} style={{ marginBottom: '5px' }}>
-                  - {item === 'レガシーシステムとの連携' ? `~~${item}~~` : item}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 必要環境 */}
-          <section style={{ marginBottom: '25px' }}>
-            <div style={{ fontSize: '14px', color: '#333', margin: '20px 0', marginLeft: '10px' }}>```</div>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>## 必要環境:</h2>
-            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              {projectDetail.required_environment.map((env, index) => (
-                <div key={index} style={{ marginBottom: '5px' }}>
-                  {env}
-                </div>
-              ))}
-              <div style={{ fontSize: '14px', color: '#333', marginTop: '10px' }}>```</div>
-            </div>
-          </section>
-
-          {/* 進捗 */}
-          <section style={{ marginBottom: '25px' }}>
-            <h2 style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>### 進捗</h2>
-            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              {projectDetail.progress_items.map((item, index) => (
-                <div key={index} style={{ marginBottom: '5px' }}>
-                  - {item.completed ? '[x]' : '[ ]'} {item.item}
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 注意 */}
-          <section style={{ marginBottom: '25px' }}>
-            <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              <a 
-                href="http://example.com" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                style={{ color: '#0066cc', textDecoration: 'underline' }}
-              >
-              `注意`：「セキュリティガイドライン」[セキュリティーガイドライン](https://example.com)に準拠すること
-              </a>
-              
-            </div>
-            <div style={{ marginTop: '10px', textAlign: 'left' }}>
-              <button
-                onClick={handleBackToTodo}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                閉じる
-              </button>
-            </div>
-          </section>
-
+          {renderDescription(projectDetail.description)}
           
+          <div style={{ marginTop: '20px', textAlign: 'left' }}>
+            <button
+              onClick={handleBackToTodo}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              閉じる
+            </button>
+          </div>
         </div>
       </div>
     );
