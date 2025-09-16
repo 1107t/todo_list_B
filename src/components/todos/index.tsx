@@ -440,14 +440,17 @@ const TodoApp: React.FC = () => {
 
   const handleMarkClick = useCallback((todo: Todo) => {
     // 画像も含めてマークダウン形式でプロジェクト詳細データを作成
-    let markdownDescription = "> 本プロジェクトは経営層からの重要施策";
+    let markdownDescription = "";
     
-    // タスクに画像がある場合は、マークダウンに画像を追加
+    // タスクに画像がある場合は、マークダウンに画像を追加（引用文なし）
     if (todo.images && todo.images.length > 0) {
-      markdownDescription += "\n\n### 関連画像\n";
+      markdownDescription += `### ${todo.title}\n`;
       todo.images.forEach((image, index) => {
         markdownDescription += `\n![${image.name}](${image.url})\n`;
       });
+    } else {
+      // 画像がない場合は従来通りの引用文を表示
+      markdownDescription = "> 本プロジェクトは経営層からの重要施策";
     }
 
     const projectDetail: ProjectDetail = {
@@ -547,13 +550,11 @@ const TodoApp: React.FC = () => {
           // 引用
           elements.push(
             <div key={`quote-${index}`} style={{ 
-              marginLeft: '10px', 
               fontSize: '14px',
-              borderLeft: '3px solid #ddd',
               paddingLeft: '10px',
               color: '#666'
             }}>
-              {part.replace('> ', '')}
+              > {part.replace('> ', '')}
             </div>
           );
         } else if (part.trim() !== '') {
