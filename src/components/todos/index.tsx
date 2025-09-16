@@ -554,7 +554,7 @@ const TodoApp: React.FC = () => {
               paddingLeft: '10px',
               color: '#666'
             }}>
-              > {part.replace('> ', '')}
+              {'>'}  {part.replace('> ', '')}
             </div>
           );
         } else if (part.trim() !== '') {
@@ -633,7 +633,7 @@ const TodoApp: React.FC = () => {
                 <strong>**期限**:</strong> {projectDetail.deadline}
               </div>
               <div style={{ marginBottom: '10px' }}>
-                <strong>*責任者*:</strong> {projectDetail.responsible}
+                <strong>**責任者**:</strong> {projectDetail.responsible}
               </div>
               <div>
                 {renderDescription(projectDetail.description)}
