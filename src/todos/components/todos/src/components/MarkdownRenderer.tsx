@@ -1,5 +1,5 @@
 import React from 'react';
-import { MarkdownRendererProps } from '../todos/types';
+import { MarkdownRendererProps } from '../../types';
 
 const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ description, onBack }) => {
   const renderDescription = (description: string) => {

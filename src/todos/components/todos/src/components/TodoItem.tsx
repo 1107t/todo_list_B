@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { TodoItemProps, Todo } from '../todos/types';
+import { TodoItemProps, Todo } from '../../types';
 
 const TodoItem: React.FC<TodoItemProps> = (props) => {
   const { todo, isExpanded, onToggleExpanded, onUpdateTodo, onMarkClick } = props;
@@ -19,7 +19,7 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
       const descriptionLines = newDescription.split('\n').map(line => line.trim()).filter(line => line !== '');
       
       // 詳細説明に含まれているファイル名のみを残す
-      const remainingImages = currentImages.filter(image => 
+      const remainingImages = currentImages.filter((image: { name: string; url: string }) => 
         descriptionLines.includes(image.name.trim())
       );
       
@@ -83,18 +83,10 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
     }
   };
 
-  // ファイル選択処理
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      handleImageUpload(files);
-    }
-  };
-
-  // 画像削除処理
+  // 画像削除処理（未使用だが将来のために保持）
   const handleImageDelete = (imageIndex: number) => {
     const currentImages = todo.images || [];
-    const newImages = currentImages.filter((_, index) => index !== imageIndex);
+    const newImages = currentImages.filter((_: any, index: number) => index !== imageIndex);
     onUpdateTodo(todo.id, 'images', newImages);
   };
 
