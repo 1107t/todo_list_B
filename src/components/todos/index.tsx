@@ -10,6 +10,7 @@ type Todo = {
   due_date: string;
   description: string;
   start_note: string;
+  images?: { name: string; url: string }[]; // ファイル名とURLの配列に変更
 };
 
 type ProjectDetail = {
@@ -117,13 +118,98 @@ interface TodoItemProps {
 const TodoItem: React.FC<TodoItemProps> = (props) => {
   const { todo, isExpanded, onToggleExpanded, onUpdateTodo, onMarkClick } = props;
   const [localDescription, setLocalDescription] = useState(todo.description);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   useEffect(() => {
     setLocalDescription(todo.description);
   }, [todo.description]);
 
+  const handleDescriptionChange = useCallback((newDescription: string) => {
+    setLocalDescription(newDescription);
+    
+    // 詳細説明からファイル名が削除された場合、対応する画像も削除
+    if (todo.images && todo.images.length > 0) {
+      const currentImages = todo.images;
+      const descriptionLines = newDescription.split('\n').map(line => line.trim()).filter(line => line !== '');
+      
+      // 詳細説明に含まれているファイル名のみを残す
+      const remainingImages = currentImages.filter(image => 
+        descriptionLines.includes(image.name.trim())
+      );
+      
+      // 画像が削除された場合のみ更新
+      if (remainingImages.length !== currentImages.length) {
+        onUpdateTodo(todo.id, 'images', remainingImages);
+      }
+    }
+  }, [todo.images, todo.id, onUpdateTodo]);
+
+  const handleDescriptionBlur = useCallback(() => {
+    onUpdateTodo(todo.id, 'description', localDescription);
+    // ブラー時にも画像の同期をチェック
+    handleDescriptionChange(localDescription);
+  }, [todo.id, localDescription, onUpdateTodo, handleDescriptionChange]);
+
   const handleMarkClick = () => {
     onMarkClick(todo);
+  };
+
+  // 画像ファイルを読み込んでBase64に変換
+  const handleImageUpload = (files: FileList) => {
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const imageUrl = e.target?.result as string;
+          const currentImages = todo.images || [];
+          onUpdateTodo(todo.id, 'images', [...currentImages, { name: file.name, url: imageUrl }]);
+          
+          // 詳細説明欄にファイル名を追加
+          const currentDescription = localDescription;
+          const newDescription = currentDescription ? `${currentDescription}\n${file.name}` : file.name;
+          setLocalDescription(newDescription);
+          onUpdateTodo(todo.id, 'description', newDescription);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  // ドラッグオーバー処理
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  };
+
+  // ドロップ処理
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleImageUpload(files);
+    }
+  };
+
+  // ファイル選択処理
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleImageUpload(files);
+    }
+  };
+
+  // 画像削除処理
+  const handleImageDelete = (imageIndex: number) => {
+    const currentImages = todo.images || [];
+    const newImages = currentImages.filter((_, index) => index !== imageIndex);
+    onUpdateTodo(todo.id, 'images', newImages);
   };
 
   return (
@@ -262,23 +348,40 @@ const TodoItem: React.FC<TodoItemProps> = (props) => {
       {isExpanded && (
         <div style={{ marginTop: '15px' }}>
           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
-          <textarea
-            value={localDescription}
-            onChange={(e) => setLocalDescription(e.target.value)}
-            onBlur={() => onUpdateTodo(todo.id, 'description', localDescription)}
-            disabled={todo.delete_flg || todo.progress === 100}
-            rows={3}
-            style={{ 
-              width: '100%', 
-              padding: '8px', 
-              fontSize: '14px', 
-              border: '1px solid #ccc', 
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{
+              border: isDragOver ? '2px dashed #007bff' : '1px solid #ccc',
               borderRadius: '5px',
-              resize: 'vertical',
-              fontFamily: 'Arial, sans-serif',
-              backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
+              backgroundColor: isDragOver ? '#f8f9fa' : ((todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'),
+              transition: 'all 0.2s ease'
             }}
-          />
+          >
+            <textarea
+              value={localDescription}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              onBlur={handleDescriptionBlur}
+              disabled={todo.delete_flg || todo.progress === 100}
+              rows={3}
+              style={{ 
+                width: '100%', 
+                padding: '8px', 
+                fontSize: '14px', 
+                border: 'none',
+                borderRadius: '5px',
+                resize: 'vertical',
+                fontFamily: 'Arial, sans-serif',
+                backgroundColor: 'transparent',
+                outline: 'none'
+              }}
+              placeholder={isDragOver ? "画像をドロップしてください..." : "詳細説明を入力..."}
+            />
+          </div>
+          
+          {/* 画像ファイル名は詳細説明欄に表示されるため、ここでは表示しない */}
+          
           <div style={{ marginTop: '10px', textAlign: 'left' }}>
             <button
               type="button"
@@ -336,14 +439,24 @@ const TodoApp: React.FC = () => {
   }, [searchQuery, todos]);
 
   const handleMarkClick = useCallback((todo: Todo) => {
-    // 画像の仕様書に基づいてプロジェクト詳細データを作成
+    // 画像も含めてマークダウン形式でプロジェクト詳細データを作成
+    let markdownDescription = "> 本プロジェクトは経営層からの重要施策";
+    
+    // タスクに画像がある場合は、マークダウンに画像を追加
+    if (todo.images && todo.images.length > 0) {
+      markdownDescription += "\n\n### 関連画像\n";
+      todo.images.forEach((image, index) => {
+        markdownDescription += `\n![${image.name}](${image.url})\n`;
+      });
+    }
+
     const projectDetail: ProjectDetail = {
       id: todo.id,
       title: todo.title,
       overview: "本プロジェクトは経営層からの重要施策",
       deadline: "2024年12月20日",
       responsible: "佐藤健一",
-      description: "> 本プロジェクトは経営層からの重要施策",
+      description: markdownDescription,
       implementation_items: [
         "ユーザー認証機能",
         "レガシーシステムとの連携",
@@ -366,7 +479,8 @@ const TodoApp: React.FC = () => {
     setProjectDetails(prev => {
       const exists = prev.find(p => p.id === todo.id);
       if (exists) {
-        return prev;
+        // 既存のプロジェクト詳細を更新（画像が変更されている可能性があるため）
+        return prev.map(p => p.id === todo.id ? projectDetail : p);
       }
       return [...prev, projectDetail];
     });
@@ -378,6 +492,8 @@ const TodoApp: React.FC = () => {
 
   const ProjectDetailView: React.FC = () => {
     const projectDetail = projectDetails.find(p => p.id === selectedProjectId);
+    const relatedTodo = todos.find(t => t.id === selectedProjectId);
+    const hasImages = relatedTodo?.images && relatedTodo.images.length > 0;
 
     if (!projectDetail) {
       return (
@@ -393,32 +509,104 @@ const TodoApp: React.FC = () => {
       setCurrentView('todo');
     };
 
-    const renderNotesWithLink = (notes: string) => {
-      // notesからセキュリティガイドラインの部分をリンクに変換
-      const parts = notes.split('「セキュリティガイドライン」');
-      if (parts.length === 2) {
-        return (
-          <>
-            {parts[0]}「
-            <a 
-              href="http://example.com" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              style={{ color: '#0066cc', textDecoration: 'underline' }}
-            >
-              セキュリティガイドライン
-            </a>
-            」{parts[1].replace('(http://example.com)', '')}
-          </>
-        );
-      }
-      return notes;
+    const renderDescription = (description: string) => {
+      // マークダウン記法を解析して適切にレンダリング
+      const parts = description.split('\n');
+      const elements: React.ReactNode[] = [];
+      
+      let currentIndex = 0;
+      parts.forEach((part, index) => {
+        if (part.startsWith('### ')) {
+          // H3見出し
+          elements.push(
+            <h3 key={`h3-${index}`} style={{ fontSize: '16px', color: '#333', marginTop: '20px', marginBottom: '10px' }}>
+              {part.replace('### ', '')}
+            </h3>
+          );
+        } else if (part.startsWith('![')) {
+          // 画像のマークダウン記法を解析
+          const imageMatch = part.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+          if (imageMatch) {
+            const [, altText, imageUrl] = imageMatch;
+            elements.push(
+              <div key={`img-${index}`} style={{ marginBottom: '15px' }}>
+                <img
+                  src={imageUrl}
+                  alt={altText}
+                  style={{
+                    maxWidth: '100%',
+                    height: 'auto',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+            );
+          }
+        } else if (part.startsWith('> ')) {
+          // 引用
+          elements.push(
+            <div key={`quote-${index}`} style={{ 
+              marginLeft: '10px', 
+              fontSize: '14px',
+              borderLeft: '3px solid #ddd',
+              paddingLeft: '10px',
+              color: '#666'
+            }}>
+              {part.replace('> ', '')}
+            </div>
+          );
+        } else if (part.trim() !== '') {
+          // 通常のテキスト
+          elements.push(
+            <div key={`text-${index}`} style={{ marginLeft: '10px', fontSize: '14px', marginBottom: '5px' }}>
+              {part}
+            </div>
+          );
+        }
+      });
+      
+      return elements;
     };
 
+    // 画像がある場合は画像と閉じるボタンのみ表示
+    if (hasImages) {
+      return (
+        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '30px', 
+            borderRadius: '8px', 
+            border: '1px solid #ddd',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            {renderDescription(projectDetail.description)}
+            
+            <div style={{ marginTop: '20px', textAlign: 'left' }}>
+              <button
+                onClick={handleBackToTodo}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 画像がない場合は従来通りの表示
     return (
       <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
         
-
         <div style={{ 
           backgroundColor: 'white', 
           padding: '30px', 
@@ -447,7 +635,7 @@ const TodoApp: React.FC = () => {
                 <strong>**責任者**:</strong> {projectDetail.responsible}
               </div>
               <div>
-                {projectDetail.description}
+                {renderDescription(projectDetail.description)}
               </div>
             </div>
           </section>
@@ -494,7 +682,16 @@ const TodoApp: React.FC = () => {
           {/* 注意 */}
           <section style={{ marginBottom: '25px' }}>
             <div style={{ marginLeft: '10px', fontSize: '14px' }}>
-              {renderNotesWithLink(projectDetail.notes)}
+              注意：「
+              <a 
+                href="http://example.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{ color: '#0066cc', textDecoration: 'underline' }}
+              >
+                セキュリティガイドライン
+              </a>
+              」に準拠すること
             </div>
             <div style={{ marginTop: '10px', textAlign: 'left' }}>
               <button
@@ -856,6 +1053,7 @@ const TodoApp: React.FC = () => {
         due_date: dueDate,
         description: description,
         start_note: startNote,
+        images: [], // 新しいタスクには空の画像配列を設定
       };
 
       setTodos((prevTodos) => [newTodo, ...prevTodos]);
