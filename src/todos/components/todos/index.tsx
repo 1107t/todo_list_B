@@ -15,17 +15,17 @@ type Todo = {
 
 type Filter = 'all' | 'completed' | 'unchecked' | 'delete';
 
-const TodoApp = () => {
-  const [currentView, setCurrentView] = useState('calendar');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [todos, setTodos] = useState([]);
-  const [nextId, setNextId] = useState(1);
-  const [expandedTodos, setExpandedTodos] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [markdownTodo, setMarkdownTodo] = useState(null);
-  const [showMarkdown, setShowMarkdown] = useState(false);
+const TodoApp: React.FC = () => {
+  const [currentView, setCurrentView] = useState<string>('calendar');
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [nextId, setNextId] = useState<number>(1);
+  const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [markdownTodo, setMarkdownTodo] = useState<Todo | null>(null);
+  const [showMarkdown, setShowMarkdown] = useState<boolean>(false);
   
-  const handleSearchQueryChange = useCallback((query) => {
+  const handleSearchQueryChange = useCallback((query: string) => {
     setSearchQuery(query);
   }, []);
 
@@ -43,7 +43,7 @@ const TodoApp = () => {
     );
   }, [searchQuery, todos]);
 
-  const handleMarkClick = useCallback((todo) => {
+  const handleMarkClick = useCallback((todo: Todo) => {
     setMarkdownTodo(todo);
     setShowMarkdown(true);
   }, []);
@@ -53,8 +53,13 @@ const TodoApp = () => {
     setMarkdownTodo(null);
   }, []);
 
-  const MarkdownRenderer = ({ description, onBack }) => {
-    const renderDescription = (description) => {
+  interface MarkdownRendererProps {
+    description: string;
+    onBack: () => void;
+  }
+
+  const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ description, onBack }) => {
+    const renderDescription = (description: string): React.ReactNode => {
       if (!description || typeof description !== 'string') {
         return (
           <div style={{ 
@@ -69,10 +74,10 @@ const TodoApp = () => {
       }
       
       const lines = description.split('\n');
-      const elements = [];
-      let codeBlockContent = [];
+      const elements: React.ReactNode[] = [];
+      let codeBlockContent: string[] = [];
       let inCodeBlock = false;
-      let listItems = [];
+      let listItems: { bullet: string; text: string; indent: string }[] = [];
       
       const flushList = () => {
         if (listItems.length > 0) {
@@ -82,15 +87,17 @@ const TodoApp = () => {
                 <div key={idx} style={{ 
                   display: 'flex',
                   alignItems: 'flex-start',
-                  marginBottom: '3px',
+                  marginBottom: '5px',
                   marginLeft: item.indent,
                   fontSize: '14px',
-                  lineHeight: '1.4'
+                  lineHeight: '1.5'
                 }}>
                   <span style={{ 
                     marginRight: '8px',
-                    color: '#666',
-                    minWidth: '8px'
+                    color: '#333',
+                    minWidth: '16px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace'
                   }}>
                     {item.bullet}
                   </span>
@@ -136,76 +143,106 @@ const TodoApp = () => {
           return;
         }
         
-        // 見出し処理
-        if (line.startsWith('### ')) {
+        // 空行処理
+        if (line.trim() === '') {
+          flushList();
+          if (elements.length > 0) {
+            elements.push(
+              <div key={`space-${index}`} style={{ marginBottom: '12px' }} />
+            );
+          }
+        }
+        // 見出し処理（###を最優先でチェック）
+        else if (line.startsWith('### ')) {
           flushList();
           elements.push(
-            <h3 key={`h3-${index}`} style={{ 
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#333',
-              margin: '20px 0 10px 0',
-              borderLeft: '4px solid #007bff',
-              paddingLeft: '10px'
-            }}>
-              {line.replace('### ', '')}
-            </h3>
-          );
-        } else if (line.startsWith('## ')) {
-          flushList();
-          elements.push(
-            <h2 key={`h2-${index}`} style={{ 
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: '#333',
-              margin: '25px 0 15px 0',
-              borderBottom: '2px solid #007bff',
-              paddingBottom: '5px'
-            }}>
-              {line.replace('## ', '')}
-            </h2>
-          );
-        } else if (line.startsWith('# ')) {
-          flushList();
-          elements.push(
-            <h1 key={`h1-${index}`} style={{ 
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#333',
-              margin: '30px 0 20px 0'
-            }}>
-              {line.replace('# ', '')}
-            </h1>
+            <div 
+              key={`h3-${index}`} 
+              style={{ 
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '12px',
+                marginTop: '20px',
+                lineHeight: '1.6'
+              }}
+            >
+              {line.substring(4)}
+            </div>
           );
         }
-        // チェックボックスリスト
-        else if (line.match(/^\s*- \[[x ]\]/)) {
+        // ##の処理
+        else if (line.startsWith('## ')) {
+          flushList();
+          elements.push(
+            <div 
+              key={`h2-${index}`} 
+              style={{ 
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '15px',
+                marginTop: '25px',
+                lineHeight: '1.6'
+              }}
+            >
+              {line.substring(3)}
+            </div>
+          );
+        }
+        // #の処理
+        else if (line.startsWith('# ')) {
+          flushList();
+          elements.push(
+            <div 
+              key={`h1-${index}`} 
+              style={{ 
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '18px',
+                marginTop: '30px',
+                lineHeight: '1.6'
+              }}
+            >
+              {line.substring(2)}
+            </div>
+          );
+        }
+        // チェックボックスリスト処理
+        else if (line.match(/^\s*-\s*\[[x ]\]/)) {
           flushList();
           const isChecked = line.includes('[x]');
-          const indent = (line.match(/^\s*/)[0].length) * 10;
-          const text = line.replace(/^\s*- \[[x ]\]\s*/, '');
+          const indent = (line.match(/^\s*/)?.[0].length || 0) * 10;
+          const text = line.replace(/^\s*-\s*\[[x ]\]\s*/, '');
           
           elements.push(
             <div key={`checkbox-${index}`} style={{ 
               display: 'flex',
-              alignItems: 'center',
-              marginBottom: '6px',
-              marginLeft: `${indent + 16}px`,
-              fontSize: '14px'
+              alignItems: 'flex-start',
+              marginBottom: '8px',
+              marginLeft: `${indent}px`,
+              fontSize: '14px',
+              lineHeight: '1.5'
             }}>
               <span style={{ 
                 marginRight: '8px',
-                color: '#666',
-                minWidth: '8px'
+                color: '#333',
+                minWidth: '16px',
+                fontSize: '14px',
+                fontFamily: 'monospace'
               }}>
-                •
+                ・
               </span>
-              <input 
-                type="checkbox" 
-                checked={isChecked} 
-                readOnly 
-                style={{ marginRight: '8px' }}
-              />
+              <span style={{ 
+                marginRight: '8px',
+                color: '#666',
+                minWidth: '24px',
+                fontSize: '14px',
+                fontFamily: 'monospace'
+              }}>
+                {isChecked ? '[x]' : '[ ]'}
+              </span>
               <span style={{ 
                 textDecoration: isChecked ? 'line-through' : 'none',
                 color: isChecked ? '#888' : '#333'
@@ -215,18 +252,18 @@ const TodoApp = () => {
             </div>
           );
         }
-        // 通常のリスト（- または *）
-        else if (line.match(/^\s*[-*]\s/)) {
-          const indent = (line.match(/^\s*/)[0].length) * 12;
-          const text = line.replace(/^\s*[-*]\s*/, '');
+        // 通常のリスト処理（- または *で始まる）
+        else if (line.match(/^\s*[-*]\s+/)) {
+          const indent = (line.match(/^\s*/)?.[0].length || 0) * 12;
+          const text = line.replace(/^\s*[-*]\s+/, '');
           
           listItems.push({
-            bullet: '•',
+            bullet: '・',
             text: text,
-            indent: `${indent + 16}px`
+            indent: `${indent}px`
           });
         }
-        // 引用
+        // 引用処理
         else if (line.startsWith('> ')) {
           flushList();
           elements.push(
@@ -236,14 +273,16 @@ const TodoApp = () => {
                 fontSize: '14px', 
                 marginBottom: '8px',
                 lineHeight: '1.6',
-                color: '#333'
+                color: '#333',
+                paddingLeft: '16px',
+                borderLeft: '4px solid #ddd'
               }}
             >
-              {line.replace('> ', '')}
+              {line.substring(2)}
             </div>
           );
         }
-        // 水平線
+        // 水平線処理
         else if (line.trim() === '---') {
           flushList();
           elements.push(
@@ -254,14 +293,24 @@ const TodoApp = () => {
             }} />
           );
         }
-        // 空行
-        else if (line.trim() === '') {
+        // 注意行の処理
+        else if (line.trim().startsWith('注意：')) {
           flushList();
-          if (elements.length > 0) {
-            elements.push(
-              <div key={`space-${index}`} style={{ marginBottom: '12px' }} />
-            );
-          }
+          const content = line.replace(/^\s*注意：\s*/, '');
+          
+          elements.push(
+            <div 
+              key={`notice-${index}`} 
+              style={{ 
+                fontSize: '14px',
+                color: '#333',
+                marginBottom: '8px',
+                lineHeight: '1.6'
+              }}
+            >
+              注意：{content}
+            </div>
+          );
         }
         // 通常のテキスト行
         else if (line.trim() !== '') {
@@ -269,24 +318,22 @@ const TodoApp = () => {
           
           let processedLine = line;
           
-          // 取り消し線
-          processedLine = processedLine.replace(/~~([^~]+)~~/g, '<del style="color: #888;">$1</del>');
-          
-          // 太字
+          // 太字処理
           processedLine = processedLine.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
           
-          // 斜体（太字でない場合のみ）
+          // 斜体処理（太字でない場合のみ）
           processedLine = processedLine.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+          
+          // 取り消し線
+          processedLine = processedLine.replace(/~~([^~]+)~~/g, '<del style="color: #888;">$1</del>');
           
           // インラインコード
           processedLine = processedLine.replace(/`([^`]+)`/g, 
             '<code style="background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: Consolas, Monaco, \'Courier New\', monospace; font-size: 13px; border: 1px solid #e1e1e1;">$1</code>'
           );
           
-          // リンク
-          processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, 
-            '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">$1</a>'
-          );
+          // リンク処理（表示テキストのみ残す）
+          processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
           
           elements.push(
             <div 
@@ -341,10 +388,16 @@ const TodoApp = () => {
     );
   };
 
-  const SearchForm = ({ searchQuery, onSearchChange, searchResults }) => {
+  interface SearchFormProps {
+    searchQuery: string;
+    onSearchChange: (query: string) => void;
+    searchResults: Todo[];
+  }
+
+  const SearchForm: React.FC<SearchFormProps> = ({ searchQuery, onSearchChange, searchResults }) => {
     const [localQuery, setLocalQuery] = useState(searchQuery);
 
-    const handleInputChange = (e) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setLocalQuery(value);
       onSearchChange(value);
@@ -412,7 +465,15 @@ const TodoApp = () => {
     );
   };
 
-  const TodoItemComponent = ({ todo, onUpdateTodo, onToggleExpanded, isExpanded, onMarkClick }) => {
+  interface TodoItemComponentProps {
+    todo: Todo;
+    onUpdateTodo: (id: number, key: keyof Todo, value: any) => void;
+    onToggleExpanded: (id: number) => void;
+    isExpanded: boolean;
+    onMarkClick: (todo: Todo) => void;
+  }
+
+  const TodoItemComponent: React.FC<TodoItemComponentProps> = ({ todo, onUpdateTodo, onToggleExpanded, isExpanded, onMarkClick }) => {
     const [localDescription, setLocalDescription] = useState(todo.description || '');
 
     useEffect(() => {
@@ -613,37 +674,37 @@ const TodoApp = () => {
     );
   };
 
-  const CalendarView = () => {
+  const CalendarView: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const searchHighlightDates = useMemo(() => {
       if (!searchQuery.trim()) return new Set();
       
-      const highlightDates = new Set();
+      const highlightDates = new Set<string>();
       getSearchedTodos.forEach(todo => {
         const startDate = new Date(todo.start_date);
         const endDate = new Date(todo.due_date);
         
-        const currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-          const year = currentDate.getFullYear();
-          const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-          const day = String(currentDate.getDate()).padStart(2, '0');
+        const currentDateLoop = new Date(startDate);
+        while (currentDateLoop <= endDate) {
+          const year = currentDateLoop.getFullYear();
+          const month = String(currentDateLoop.getMonth() + 1).padStart(2, '0');
+          const day = String(currentDateLoop.getDate()).padStart(2, '0');
           highlightDates.add(`${year}-${month}-${day}`);
-          currentDate.setDate(currentDate.getDate() + 1);
+          currentDateLoop.setDate(currentDateLoop.getDate() + 1);
         }
       });
       
       return highlightDates;
     }, [getSearchedTodos, searchQuery]);
 
-    const formatDate = (date) => {
+    const formatDate = (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       return `${year}年${month}月`;
     };
 
-    const getDaysInMonth = (date) => {
+    const getDaysInMonth = (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth();
       const firstDay = new Date(year, month, 1);
@@ -651,7 +712,7 @@ const TodoApp = () => {
       const daysInMonth = lastDay.getDate();
       const startingDayOfWeek = firstDay.getDay();
       
-      const days = [];
+      const days: { date: Date; isCurrentMonth: boolean }[] = [];
       
       for (let i = startingDayOfWeek - 1; i >= 0; i--) {
         const prevDate = new Date(year, month, -i);
@@ -679,7 +740,7 @@ const TodoApp = () => {
       return days;
     };
 
-    const navigateMonth = (direction) => {
+    const navigateMonth = (direction: string) => {
       const newDate = new Date(currentDate);
       if (direction === 'prev') {
         newDate.setMonth(newDate.getMonth() - 1);
@@ -689,7 +750,7 @@ const TodoApp = () => {
       setCurrentDate(newDate);
     };
 
-    const getEventsForDate = (date) => {
+    const getEventsForDate = (date: Date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
       const day = String(date.getDate()).padStart(2, '0');
@@ -710,12 +771,12 @@ const TodoApp = () => {
       return filteredTodos;
     };
 
-    const isToday = (date) => {
+    const isToday = (date: Date) => {
       const today = new Date();
       return date.toDateString() === today.toDateString();
     };
 
-    const isSearchHighlighted = (date) => {
+    const isSearchHighlighted = (date: Date) => {
       if (!searchQuery.trim()) return false;
       
       const year = date.getFullYear();
@@ -903,9 +964,9 @@ const TodoApp = () => {
     );
   };
 
-  const TodoView = () => {
+  const TodoView: React.FC = () => {
     const [text, setText] = useState('');
-    const [filter, setFilter] = useState('all');
+    const [filter, setFilter] = useState<Filter>('all');
     const [currentDate, setCurrentDate] = useState(selectedDate);
 
     useEffect(() => {
@@ -920,7 +981,7 @@ const TodoApp = () => {
       const day = String(selectedDate.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
 
-      const newTodo = {
+      const newTodo: Todo = {
         title: text.trim(),
         id: nextId,
         completed_flg: false,
@@ -938,13 +999,13 @@ const TodoApp = () => {
       setText('');
     };
 
-    const getFilteredTodos = () => {
+    const getFilteredTodos = (): Todo[] => {
       const year = currentDate.getFullYear();
       const month = String(currentDate.getMonth() + 1).padStart(2, '0');
       const day = String(currentDate.getDate()).padStart(2, '0');
       const currentDateString = `${year}-${month}-${day}`;
 
-      let filteredTodos = [];
+      let filteredTodos: Todo[] = [];
       
       switch (filter) {
         case 'completed':
@@ -982,7 +1043,7 @@ const TodoApp = () => {
       return filteredTodos;
     };
 
-    const handleTodo = useCallback((id, key, value) => {
+    const handleTodo = useCallback((id: number, key: keyof Todo, value: any) => {
       setTodos((todos) => {
         return todos.map((todo) => {
           if (todo.id === id) {
@@ -1033,14 +1094,14 @@ const TodoApp = () => {
       setSelectedDate(newDate);
     };
 
-    const formatDate = (date) => {
+    const formatDate = (date: Date) => {
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       const day = date.getDate();
       return `${year}年${month}月${day}日`;
     };
 
-    const toggleExpanded = useCallback((todoId) => {
+    const toggleExpanded = useCallback((todoId: number) => {
       setExpandedTodos(prev => 
         prev.includes(todoId) 
           ? prev.filter(id => id !== todoId)
@@ -1080,7 +1141,7 @@ const TodoApp = () => {
         <div style={{ marginBottom: '20px', textAlign: 'center' }}>
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
+            onChange={(e) => setFilter(e.target.value as Filter)}
             style={{ padding: '8px 12px', fontSize: '16px', border: '1px solid #ccc', borderRadius: '5px', width: 'calc(100% - 20px)' }}
           >
             <option value="all">すべてのタスク</option>
@@ -1091,7 +1152,7 @@ const TodoApp = () => {
         </div>
         
         {filter !== 'completed' && filter !== 'delete' && (
-         <div style={{ textAlign: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
           <div style={{ marginBottom: '20px' }}>
             <div style={{ marginBottom: '15px' }}>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>タスク名</label>
@@ -1122,7 +1183,7 @@ const TodoApp = () => {
               </button>
             </div>
           </div>
-         </div> 
+        </div> 
         )}
 
         {filter === 'delete' && (
