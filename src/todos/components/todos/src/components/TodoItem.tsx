@@ -1,285 +1,266 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { TodoItemProps, Todo } from '../../types';
+import React from 'react';
+import { MarkdownRendererProps } from '../../types';
 
-const TodoItem: React.FC<TodoItemProps> = (props) => {
-  const { todo, isExpanded, onToggleExpanded, onUpdateTodo, onMarkClick } = props;
-  const [localDescription, setLocalDescription] = useState(todo.description);
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  useEffect(() => {
-    setLocalDescription(todo.description);
-  }, [todo.description]);
-
-  const handleDescriptionChange = useCallback((newDescription: string) => {
-    setLocalDescription(newDescription);
+const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ description, onBack }) => {
+  const renderDescription = (description: string) => {
+    const lines = description.split('\n');
+    const elements: React.ReactNode[] = [];
+    let codeBlockContent: string[] = [];
+    let inCodeBlock = false;
     
-    // 詳細説明からファイル名が削除された場合、対応する画像も削除
-    if (todo.images && todo.images.length > 0) {
-      const currentImages = todo.images;
-      const descriptionLines = newDescription.split('\n').map(line => line.trim()).filter(line => line !== '');
-      
-      // 詳細説明に含まれているファイル名のみを残す
-      const remainingImages = currentImages.filter((image: { name: string; url: string }) => 
-        descriptionLines.includes(image.name.trim())
-      );
-      
-      // 画像が削除された場合のみ更新
-      if (remainingImages.length !== currentImages.length) {
-        onUpdateTodo(todo.id, 'images', remainingImages);
+    lines.forEach((line, index) => {
+      // コードブロックの処理
+      if (line.trim().startsWith('```')) {
+        if (inCodeBlock) {
+          // コードブロック終了
+          elements.push(
+            <pre key={`code-${index}`} style={{ 
+              backgroundColor: '#f4f4f4',
+              padding: '15px',
+              borderRadius: '5px',
+              border: '1px solid #ddd',
+              fontSize: '14px',
+              fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+              overflow: 'auto',
+              margin: '10px 0'
+            }}>
+              <code>{codeBlockContent.join('\n')}</code>
+            </pre>
+          );
+          codeBlockContent = [];
+          inCodeBlock = false;
+        } else {
+          // コードブロック開始
+          inCodeBlock = true;
+        }
+        return;
       }
-    }
-  }, [todo.images, todo.id, onUpdateTodo]);
-
-  const handleDescriptionBlur = useCallback(() => {
-    onUpdateTodo(todo.id, 'description', localDescription);
-    // ブラー時にも画像の同期をチェック
-    handleDescriptionChange(localDescription);
-  }, [todo.id, localDescription, onUpdateTodo, handleDescriptionChange]);
-
-  const handleMarkClick = () => {
-    onMarkClick(todo);
-  };
-
-  // 画像ファイルを読み込んでBase64に変換
-  const handleImageUpload = (files: FileList) => {
-    Array.from(files).forEach(file => {
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const imageUrl = e.target?.result as string;
-          const currentImages = todo.images || [];
-          onUpdateTodo(todo.id, 'images', [...currentImages, { name: file.name, url: imageUrl }]);
+      
+      if (inCodeBlock) {
+        codeBlockContent.push(line);
+        return;
+      }
+      
+      // 見出しの処理
+      if (line.startsWith('### ')) {
+        elements.push(
+          <h3 key={`h3-${index}`} style={{ 
+            fontSize: '18px', 
+            color: '#333', 
+            marginTop: '20px', 
+            marginBottom: '10px',
+            fontWeight: 'bold'
+          }}>
+            {line.replace('### ', '')}
+          </h3>
+        );
+      } else if (line.startsWith('## ')) {
+        elements.push(
+          <h2 key={`h2-${index}`} style={{ 
+            fontSize: '20px', 
+            color: '#333', 
+            marginTop: '25px', 
+            marginBottom: '15px',
+            fontWeight: 'bold'
+          }}>
+            {line.replace('## ', '')}
+          </h2>
+        );
+      } else if (line.startsWith('# ')) {
+        elements.push(
+          <h1 key={`h1-${index}`} style={{ 
+            fontSize: '24px', 
+            color: '#333', 
+            marginTop: '30px', 
+            marginBottom: '20px',
+            fontWeight: 'bold'
+          }}>
+            {line.replace('# ', '')}
+          </h1>
+        );
+      }
+      // 画像の処理
+      else if (line.startsWith('![')) {
+        const imageMatch = line.match(/!\[([^\]]*)\]\(([^)]+)\)/);
+        if (imageMatch) {
+          const [, altText, imageUrl] = imageMatch;
+          elements.push(
+            <div key={`img-${index}`} style={{ marginBottom: '15px' }}>
+              <img
+                src={imageUrl}
+                alt={altText}
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              />
+            </div>
+          );
+        }
+      }
+      // 引用の処理
+      else if (line.startsWith('> ')) {
+        elements.push(
+          <blockquote key={`quote-${index}`} style={{ 
+            borderLeft: '4px solid #ddd',
+            paddingLeft: '15px',
+            margin: '10px 0',
+            color: '#666',
+            fontSize: '14px',
+            fontStyle: 'italic'
+          }}>
+            {line.replace('> ', '')}
+          </blockquote>
+        );
+      }
+      // リストアイテムの処理
+      else if (line.startsWith('- ') || line.startsWith('* ')) {
+        elements.push(
+          <ul key={`list-${index}`} style={{ 
+            marginLeft: '20px', 
+            marginBottom: '5px' 
+          }}>
+            <li style={{ 
+              fontSize: '14px', 
+              marginBottom: '5px' 
+            }}>
+              {line.replace(/^[*-] /, '')}
+            </li>
+          </ul>
+        );
+      }
+      // インラインコードの処理
+      else if (line.includes('`') && !line.startsWith('```')) {
+        const processedLine = line.replace(/`([^`]+)`/g, (match, code) => {
+          return `<code style="background-color: #f4f4f4; padding: 2px 4px; border-radius: 3px; font-family: Consolas, Monaco, 'Courier New', monospace; font-size: 13px;">${code}</code>`;
+        });
+        
+        elements.push(
+          <div 
+            key={`inline-code-${index}`} 
+            style={{ 
+              fontSize: '14px', 
+              marginBottom: '5px',
+              lineHeight: '1.5'
+            }}
+            dangerouslySetInnerHTML={{ __html: processedLine }}
+          />
+        );
+      }
+      // 太字の処理
+      else if (line.includes('**')) {
+        const processedLine = line.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        
+        elements.push(
+          <div 
+            key={`bold-${index}`} 
+            style={{ 
+              fontSize: '14px', 
+              marginBottom: '5px',
+              lineHeight: '1.5'
+            }}
+            dangerouslySetInnerHTML={{ __html: processedLine }}
+          />
+        );
+      }
+      // 斜体の処理
+      else if (line.includes('*') && !line.startsWith('*')) {
+        const processedLine = line.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+        
+        elements.push(
+          <div 
+            key={`italic-${index}`} 
+            style={{ 
+              fontSize: '14px', 
+              marginBottom: '5px',
+              lineHeight: '1.5'
+            }}
+            dangerouslySetInnerHTML={{ __html: processedLine }}
+          />
+        );
+      }
+      // リンクの処理
+      else if (line.includes('[') && line.includes('](')) {
+        const linkMatch = line.match(/\[([^\]]+)\]\(([^)]+)\)/g);
+        let processedLine = line;
+        
+        if (linkMatch) {
+          linkMatch.forEach(match => {
+            const [, linkText, url] = match.match(/\[([^\]]+)\]\(([^)]+)\)/) || [];
+            if (linkText && url) {
+              const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">${linkText}</a>`;
+              processedLine = processedLine.replace(match, linkHtml);
+            }
+          });
           
-          // 詳細説明欄にファイル名を追加
-          const currentDescription = localDescription;
-          const newDescription = currentDescription ? `${currentDescription}\n${file.name}` : file.name;
-          setLocalDescription(newDescription);
-          onUpdateTodo(todo.id, 'description', newDescription);
-        };
-        reader.readAsDataURL(file);
+          elements.push(
+            <div 
+              key={`link-${index}`} 
+              style={{ 
+                fontSize: '14px', 
+                marginBottom: '5px',
+                lineHeight: '1.5'
+              }}
+              dangerouslySetInnerHTML={{ __html: processedLine }}
+            />
+          );
+        }
+      }
+      // 空行の処理
+      else if (line.trim() === '') {
+        elements.push(
+          <div key={`space-${index}`} style={{ marginBottom: '10px' }} />
+        );
+      }
+      // 通常のテキスト
+      else if (line.trim() !== '') {
+        elements.push(
+          <div key={`text-${index}`} style={{ 
+            fontSize: '14px', 
+            marginBottom: '5px',
+            lineHeight: '1.5'
+          }}>
+            {line}
+          </div>
+        );
       }
     });
-  };
-
-  // ドラッグオーバー処理
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-  };
-
-  // ドロップ処理
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
     
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleImageUpload(files);
-    }
-  };
-
-  // 画像削除処理（未使用だが将来のために保持）
-  const handleImageDelete = (imageIndex: number) => {
-    const currentImages = todo.images || [];
-    const newImages = currentImages.filter((_: any, index: number) => index !== imageIndex);
-    onUpdateTodo(todo.id, 'images', newImages);
+    return elements;
   };
 
   return (
-    <li style={{ marginBottom: '15px', padding: '15px', border: '1px solid #ddd', borderRadius: '8px', backgroundColor: '#f5deb3' }}>
-      <div style={{ display: 'flex', gap: '20px', minHeight: '80px', alignItems: 'flex-start', fontSize: '14px', color: '#666' }}>
-        <div style={{ flex: '0 0 150px', display: 'flex', gap: '10px', backgroundColor: '#f5deb3', padding: '10px', borderRadius: '5px' }}>
-          <div style={{ flex: '0 0 66px', paddingTop: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>進捗率</label>
-            <select
-              value={todo.progress}
-              onChange={(e) => onUpdateTodo(todo.id, 'progress', Number(e.target.value))}
-              disabled={todo.delete_flg}
-              style={{ 
-                width: '100%', 
-                padding: '6px', 
-                fontSize: '12px', 
-                border: '1px solid #ccc', 
-                borderRadius: '5px',
-                backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white'
-              }}
-            >
-              <option value={0}>0%</option>
-              <option value={10}>10%</option>
-              <option value={20}>20%</option>
-              <option value={30}>30%</option>
-              <option value={40}>40%</option>
-              <option value={50}>50%</option>
-              <option value={60}>60%</option>
-              <option value={70}>70%</option>
-              <option value={80}>80%</option>
-              <option value={90}>90%</option>
-              <option value={100}>100%</option>
-            </select>
-          </div>
-          
-          <div style={{ flex: '0 0 105px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div>
-              <strong>開始日:</strong>
-              <input
-                type="date"
-                value={todo.start_date}
-                onChange={(e) => onUpdateTodo(todo.id, 'start_date', e.target.value)}
-                disabled={todo.delete_flg}
-                max={todo.due_date || undefined}
-                style={{ 
-                  marginLeft: '5px', 
-                  padding: '4px 8px', 
-                  fontSize: '11px', 
-                  border: '1px solid #ccc', 
-                  borderRadius: '4px',
-                  backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                  width: '95px',
-                  fontFamily: 'Arial, sans-serif',
-                  cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
-                }}
-              />
-            </div>
-            
-            <div>
-              <strong>完了予定:</strong>
-              <input
-                type="date"
-                value={todo.due_date}
-                onChange={(e) => onUpdateTodo(todo.id, 'due_date', e.target.value)}
-                disabled={todo.delete_flg}
-                min={todo.start_date || undefined}
-                style={{ 
-                  marginLeft: '5px', 
-                  padding: '4px 8px', 
-                  fontSize: '11px', 
-                  border: '1px solid #ccc', 
-                  borderRadius: '4px',
-                  backgroundColor: todo.delete_flg ? '#f5f5f5' : 'white',
-                  width: '95px',
-                  fontFamily: 'Arial, sans-serif',
-                  cursor: todo.delete_flg ? 'not-allowed' : 'pointer'
-                }}
-              />
-            </div>
-          </div>
-        </div>
+    <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+      <div style={{ 
+        backgroundColor: 'white', 
+        padding: '30px', 
+        borderRadius: '8px', 
+        border: '1px solid #ddd',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        {renderDescription(description)}
         
-        <div style={{ flex: '1', paddingTop: '55px', display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-          <div style={{ flex: '1' }}>
-            <input
-              type="text"
-              value={todo.title}
-              onChange={(e) => onUpdateTodo(todo.id, 'title', e.target.value)}
-              disabled={todo.delete_flg || todo.progress === 100}
-              style={{ 
-                width: 'calc(100% - 10px)', 
-                padding: '6px', 
-                fontSize: '12px', 
-                border: '1px solid #ccc', 
-                borderRadius: '5px',
-                backgroundColor: (todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'
-              }}
-            />
-          </div>
+        <div style={{ marginTop: '30px', textAlign: 'left' }}>
           <button
-            type="button"
-            className="edit-button"
-            onClick={() => onToggleExpanded(todo.id)}
+            onClick={onBack}
             style={{
-              padding: '6px 12px',
-              fontSize: '12px',
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
-              backgroundColor: '#28a745',
-              color: 'white',
-              minWidth: '50px'
+              fontSize: '14px'
             }}
           >
-            編集
-          </button>
-          <button 
-            className={todo.delete_flg ? 'restore-button' : 'delete-button'}
-            onClick={() => onUpdateTodo(todo.id, 'delete_flg', !todo.delete_flg)}
-            style={{
-              padding: '6px 12px',
-              fontSize: '12px',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              backgroundColor: todo.delete_flg ? '#28a745' : '#dc3545',
-              color: 'white',
-              minWidth: '50px'
-            }}
-          >
-            {todo.delete_flg ? '復元' : '削除'}
+            閉じる
           </button>
         </div>
       </div>
-      
-      {isExpanded && (
-        <div style={{ marginTop: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            style={{
-              border: isDragOver ? '2px dashed #007bff' : '1px solid #ccc',
-              borderRadius: '5px',
-              backgroundColor: isDragOver ? '#f8f9fa' : ((todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'),
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <textarea
-              value={localDescription}
-              onChange={(e) => handleDescriptionChange(e.target.value)}
-              onBlur={handleDescriptionBlur}
-              disabled={todo.delete_flg || todo.progress === 100}
-              rows={3}
-              style={{ 
-                width: '100%', 
-                padding: '8px', 
-                fontSize: '14px', 
-                border: 'none',
-                borderRadius: '5px',
-                resize: 'vertical',
-                fontFamily: 'Arial, sans-serif',
-                backgroundColor: 'transparent',
-                outline: 'none'
-              }}
-              placeholder={isDragOver ? "画像をドロップしてください..." : "詳細説明を入力..."}
-            />
-          </div>
-          
-          <div style={{ marginTop: '10px', textAlign: 'left' }}>
-            <button
-              type="button"
-              onClick={handleMarkClick}
-              style={{
-                padding: '1px',
-                fontSize: '12px',
-                border: '1px solid #28a745',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                backgroundColor: todo.delete_flg ? '#f5f5f5' : '#28a745',
-                color: todo.delete_flg ? '#999' : 'white'
-              }}
-              disabled={todo.delete_flg}
-            >
-              マークダウン表示
-            </button>
-          </div>
-        </div>
-      )}
-    </li>
+    </div>
   );
 };
 
-export default TodoItem;
+export default MarkdownRenderer;
