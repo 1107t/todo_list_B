@@ -101,7 +101,10 @@ const TodoApp: React.FC = () => {
                   }}>
                     {item.bullet}
                   </span>
-                  <span style={{ color: '#333' }}>{item.text}</span>
+                  <span 
+                    style={{ color: '#333' }}
+                    dangerouslySetInnerHTML={{ __html: item.text }}
+                  />
                 </div>
               ))}
             </div>
@@ -394,7 +397,6 @@ const TodoApp: React.FC = () => {
                 }}
               />
               <span style={{ 
-                textDecoration: isChecked ? 'line-through' : 'none',
                 color: isChecked ? '#888' : '#333'
               }}>
                 {text}
@@ -405,7 +407,10 @@ const TodoApp: React.FC = () => {
         // 通常のリスト処理（- または *で始まる）
         else if (line.match(/^\s*[-*]\s+/)) {
           const indent = (line.match(/^\s*/)?.[0].length || 0) * 12;
-          const text = line.replace(/^\s*[-*]\s+/, '');
+          let text = line.replace(/^\s*[-*]\s+/, '');
+          
+          // リスト項目内でも取り消し線処理を適用
+          text = text.replace(/~~([^~]+)~~/g, '<del style="color: #888;">$1</del>');
           
           listItems.push({
             bullet: '・',
