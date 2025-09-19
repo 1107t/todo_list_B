@@ -143,12 +143,146 @@ const TodoApp: React.FC = () => {
           return;
         }
         
+        // セキュリティガイドライン行の処理（最優先）
+        if (line.trim().includes('セキュリティガイドライン')) {
+          flushList();
+          
+          // 注意ヘッダー表示
+          elements.push(
+            <div 
+              key={`security-title-${index}`} 
+              style={{ 
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '12px',
+                marginTop: '20px',
+                lineHeight: '1.6',
+                display: 'block',
+                width: '100%',
+                backgroundColor: '#f0f0f0',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ddd'
+              }}
+            >
+              注意
+            </div>
+          );
+          
+          // セキュリティガイドライン内容表示
+          elements.push(
+            <div 
+              key={`security-content-${index}`} 
+              style={{ 
+                fontSize: '14px',
+                color: '#333',
+                marginBottom: '8px',
+                lineHeight: '1.6',
+                display: 'block',
+                width: '100%'
+              }}
+            >
+              :
+              <a 
+                href="https://example.com" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                style={{
+                  color: '#0066cc', 
+                  textDecoration: 'underline',
+                  marginLeft: '0px',
+                  marginRight: '0px'
+                }}
+              >
+                セキュリティーガイドライン
+              </a>
+              に準拠すること
+            </div>
+          );
+          return;
+        }
+        
         // 空行処理
         if (line.trim() === '') {
           flushList();
           if (elements.length > 0) {
             elements.push(
               <div key={`space-${index}`} style={{ marginBottom: '12px' }} />
+            );
+          }
+        }
+        // 注意行の処理（最優先で処理）- インラインコード形式にも対応
+        else if (line.trim().startsWith('注意：') || line.trim().startsWith('`注意`：') || line.trim().startsWith('`注意`:')) {
+          flushList();
+          let content = '';
+          
+          // 様々なパターンに対応
+          if (line.trim().startsWith('注意：')) {
+            content = line.replace(/^\s*注意：\s*/, '');
+          } else if (line.trim().startsWith('`注意`：')) {
+            content = line.replace(/^\s*`注意`：\s*/, '');
+          } else if (line.trim().startsWith('`注意`:')) {
+            content = line.replace(/^\s*`注意`:\s*/, '');
+          }
+          
+          // 注意を###見出しと同じスタイルで表示（灰色背景付き）
+          elements.push(
+            <div 
+              key={`notice-title-${index}`} 
+              style={{ 
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#333',
+                marginBottom: '12px',
+                marginTop: '20px',
+                lineHeight: '1.6',
+                display: 'block',
+                width: '100%',
+                backgroundColor: '#f0f0f0',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ddd'
+              }}
+            >
+              注意
+            </div>
+          );
+          
+          // 内容を別の行として表示
+          if (content) {
+            let processedContent = content;
+            
+            // 太字処理
+            processedContent = processedContent.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // 斜体処理（太字でない場合のみ）
+            processedContent = processedContent.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+            
+            // 取り消し線
+            processedContent = processedContent.replace(/~~([^~]+)~~/g, '<del style="color: #888;">$1</del>');
+            
+            // インラインコード
+            processedContent = processedContent.replace(/`([^`]+)`/g, 
+              '<code style="background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: Consolas, Monaco, \'Courier New\', monospace; font-size: 13px; border: 1px solid #e1e1e1;">$1</code>'
+            );
+            
+            // リンク処理（リンクテキストとURLを適切に処理）
+            processedContent = processedContent.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">$1</a>');
+            
+            elements.push(
+              <div 
+                key={`notice-content-${index}`} 
+                style={{ 
+                  fontSize: '14px',
+                  color: '#333',
+                  marginBottom: '8px',
+                  lineHeight: '1.6',
+                  display: 'block',
+                  width: '100%'
+                }}
+                dangerouslySetInnerHTML={{ __html: processedContent }}
+              />
             );
           }
         }
@@ -219,7 +353,7 @@ const TodoApp: React.FC = () => {
           elements.push(
             <div key={`checkbox-${index}`} style={{ 
               display: 'flex',
-              alignItems: 'flex-start',
+              alignItems: 'center',
               marginBottom: '8px',
               marginLeft: `${indent}px`,
               fontSize: '14px',
@@ -234,15 +368,15 @@ const TodoApp: React.FC = () => {
               }}>
                 ・
               </span>
-              <span style={{ 
-                marginRight: '8px',
-                color: '#666',
-                minWidth: '24px',
-                fontSize: '14px',
-                fontFamily: 'monospace'
-              }}>
-                {isChecked ? '[x]' : '[ ]'}
-              </span>
+              <input 
+                type="checkbox" 
+                checked={isChecked} 
+                readOnly 
+                style={{ 
+                  marginRight: '8px',
+                  cursor: 'default'
+                }}
+              />
               <span style={{ 
                 textDecoration: isChecked ? 'line-through' : 'none',
                 color: isChecked ? '#888' : '#333'
@@ -293,25 +427,6 @@ const TodoApp: React.FC = () => {
             }} />
           );
         }
-        // 注意行の処理
-        else if (line.trim().startsWith('注意：')) {
-          flushList();
-          const content = line.replace(/^\s*注意：\s*/, '');
-          
-          elements.push(
-            <div 
-              key={`notice-${index}`} 
-              style={{ 
-                fontSize: '14px',
-                color: '#333',
-                marginBottom: '8px',
-                lineHeight: '1.6'
-              }}
-            >
-              注意：{content}
-            </div>
-          );
-        }
         // 通常のテキスト行
         else if (line.trim() !== '') {
           flushList();
@@ -332,8 +447,8 @@ const TodoApp: React.FC = () => {
             '<code style="background-color: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-family: Consolas, Monaco, \'Courier New\', monospace; font-size: 13px; border: 1px solid #e1e1e1;">$1</code>'
           );
           
-          // リンク処理（表示テキストのみ残す）
-          processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1');
+          // リンク処理（リンクテキストとURLを適切に処理）
+          processedLine = processedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #0066cc; text-decoration: underline;">$1</a>');
           
           elements.push(
             <div 
