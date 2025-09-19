@@ -289,6 +289,8 @@ const TodoApp: React.FC = () => {
         // 見出し処理（###を最優先でチェック）
         else if (line.startsWith('### ')) {
           flushList();
+          const headingText = line.substring(4);
+          
           elements.push(
             <div 
               key={`h3-${index}`} 
@@ -301,9 +303,23 @@ const TodoApp: React.FC = () => {
                 lineHeight: '1.6'
               }}
             >
-              {line.substring(4)}
+              {headingText}
             </div>
           );
+          
+          // 「実装項目」または「進捗」の場合は水平線を追加
+          if (headingText === '実装項目' || headingText === '進捗') {
+            elements.push(
+              <hr 
+                key={`hr-after-${index}`} 
+                style={{ 
+                  margin: '10px 0 15px 0',
+                  border: 'none',
+                  borderTop: '1px solid #ddd'
+                }} 
+              />
+            );
+          }
         }
         // ##の処理
         else if (line.startsWith('## ')) {
@@ -408,8 +424,7 @@ const TodoApp: React.FC = () => {
                 marginBottom: '8px',
                 lineHeight: '1.6',
                 color: '#333',
-                paddingLeft: '16px',
-                borderLeft: '4px solid #ddd'
+                marginLeft: '2em'
               }}
             >
               {line.substring(2)}
