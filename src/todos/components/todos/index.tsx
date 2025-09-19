@@ -723,13 +723,13 @@ const TodoApp: React.FC = () => {
             <button
               type="button"
               onClick={() => onToggleExpanded(todo.id)}
+              className="edit-button"
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                backgroundColor: '#28a745',
                 color: 'white',
                 minWidth: '50px'
               }}
@@ -738,13 +738,13 @@ const TodoApp: React.FC = () => {
             </button>
             <button 
               onClick={() => onUpdateTodo(todo.id, 'delete_flg', !todo.delete_flg)}
+              className={todo.delete_flg ? "restore-button" : "delete-button"}
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                backgroundColor: todo.delete_flg ? '#28a745' : '#dc3545',
                 color: 'white',
                 minWidth: '50px'
               }}
