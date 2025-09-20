@@ -24,6 +24,8 @@ const TodoApp: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [markdownTodo, setMarkdownTodo] = useState<Todo | null>(null);
   const [showMarkdown, setShowMarkdown] = useState<boolean>(false);
+  const [imageViewMode, setImageViewMode] = useState<boolean>(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
   
   const handleSearchQueryChange = useCallback((query: string) => {
     setSearchQuery(query);
@@ -53,24 +55,31 @@ const TodoApp: React.FC = () => {
     setMarkdownTodo(null);
   }, []);
 
+  const handleImageView = useCallback((imageUrl: string) => {
+    setCurrentImageUrl(imageUrl);
+    setImageViewMode(true);
+    setShowMarkdown(false);
+  }, []);
+
+  const handleBackToMarkdown = useCallback(() => {
+    setImageViewMode(false);
+    setShowMarkdown(true);
+  }, []);
+
   interface MarkdownRendererProps {
     description: string;
     onBack: () => void;
+    images?: { name: string; url: string }[];
   }
 
-  const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ description, onBack }) => {
+  const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ description, onBack, images = [] }) => {
+    const handleImageClick = (imageUrl: string) => {
+      handleImageView(imageUrl);
+    };
+
     const renderDescription = (description: string): React.ReactNode => {
-      if (!description || typeof description !== 'string') {
-        return (
-          <div style={{ 
-            fontSize: '14px', 
-            color: '#666', 
-            padding: '20px', 
-            textAlign: 'center' 
-          }}>
-            内容がありません
-          </div>
-        );
+      if (!description || typeof description !== 'string' || description.trim() === '') {
+        return null;
       }
       
       const lines = description.split('\n');
@@ -492,30 +501,189 @@ const TodoApp: React.FC = () => {
     };
 
     return (
-      <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '30px', 
-          borderRadius: '8px', 
-          border: '1px solid #ddd',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      <div style={{ 
+        backgroundColor: 'white', 
+        padding: '30px', 
+        borderRadius: '8px', 
+        border: '1px solid #ddd',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}>
+        {/* タスクタイトル表示 */}
+        <div style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          color: '#333',
+          marginBottom: '20px',
+          padding: '10px 15px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '6px',
+          border: '1px solid #e9ecef'
         }}>
-          {renderDescription(description)}
+          {markdownTodo?.title || 'タスク詳細'}
+        </div>
+        
+        {renderDescription(description)}
+        
+        {/* 画像表示セクション */}
+        {images && images.length > 0 && (
+          <div style={{ marginTop: '30px' }}>
+            <div style={{ 
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#333',
+              marginBottom: '15px',
+              lineHeight: '1.6'
+            }}>
+              添付画像
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+              {images.map((image, index) => (
+                <div key={index} style={{ textAlign: 'center' }}>
+                  <img
+                    src={image.url}
+                    alt={image.name}
+                    onClick={() => handleImageClick(image.url)}
+                    style={{
+                      width: '100%',
+                      maxWidth: '800px',
+                      height: 'auto',
+                      minHeight: '400px',
+                      objectFit: 'contain',
+                      borderRadius: '8px',
+                      border: '1px solid #ddd',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                      display: 'block',
+                      margin: '0 auto',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                  />
+                  <div style={{
+                    marginTop: '12px',
+                    fontSize: '14px',
+                    color: '#666',
+                    wordBreak: 'break-all'
+                  }}>
+                    {image.name} - クリックで拡大
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div style={{ marginTop: '30px', textAlign: 'left' }}>
+          <button
+            onClick={onBack}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            閉じる
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const ImageViewPage: React.FC = () => {
+    return (
+      <div style={{ 
+        backgroundColor: '#f5f5f5', 
+        minHeight: '100vh',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
+        <div style={{ 
+          marginBottom: '20px',
+          width: '100%',
+          maxWidth: '1200px'
+        }}>
+          <button
+            onClick={handleBackToMarkdown}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            ← マークダウンに戻る
+          </button>
+        </div>
+        
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '30px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          width: '100%',
+          maxWidth: '1200px',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ 
+            marginBottom: '30px',
+            color: '#333',
+            fontSize: '24px'
+          }}>
+            画像表示
+          </h2>
           
-          <div style={{ marginTop: '30px', textAlign: 'left' }}>
-            <button
-              onClick={onBack}
+          <div style={{ 
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center'
+          }}>
+            <img
+              src={currentImageUrl}
+              alt="表示画像"
               style={{
-                padding: '8px 16px',
-                backgroundColor: '#dc3545',
+                maxWidth: '100%',
+                width: 'auto',
+                height: 'auto',
+                maxHeight: '80vh',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}
+            />
+          </div>
+          
+          <div style={{ 
+            marginTop: '30px',
+            textAlign: 'center'
+          }}>
+            <button
+              onClick={handleBackToMarkdown}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#28a745',
                 color: 'white',
                 border: 'none',
-                borderRadius: '4px',
+                borderRadius: '6px',
                 cursor: 'pointer',
-                fontSize: '14px'
+                fontSize: '16px'
               }}
             >
-              閉じる
+              マークダウンに戻る
             </button>
           </div>
         </div>
@@ -610,6 +778,7 @@ const TodoApp: React.FC = () => {
 
   const TodoItemComponent: React.FC<TodoItemComponentProps> = ({ todo, onUpdateTodo, onToggleExpanded, isExpanded, onMarkClick }) => {
     const [localDescription, setLocalDescription] = useState(todo.description || '');
+    const [dragOver, setDragOver] = useState(false);
 
     useEffect(() => {
       setLocalDescription(todo.description || '');
@@ -621,6 +790,42 @@ const TodoApp: React.FC = () => {
 
     const handleMarkClick = () => {
       onMarkClick(todo);
+    };
+
+    // ドラッグ&ドロップ処理
+    const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      setDragOver(false);
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            if (event.target?.result) {
+              const imageUrl = event.target.result as string;
+              const imageName = file.name;
+              
+              // 画像情報をTodoに追加
+              const currentImages = todo.images || [];
+              const newImages = [...currentImages, { name: imageName, url: imageUrl }];
+              onUpdateTodo(todo.id, 'images', newImages);
+            }
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     };
 
     return (
@@ -727,10 +932,6 @@ const TodoApp: React.FC = () => {
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: 'white',
                 minWidth: '50px'
               }}
             >
@@ -742,10 +943,6 @@ const TodoApp: React.FC = () => {
               style={{
                 padding: '6px 12px',
                 fontSize: '12px',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                color: 'white',
                 minWidth: '50px'
               }}
             >
@@ -758,10 +955,14 @@ const TodoApp: React.FC = () => {
           <div style={{ marginTop: '15px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>詳細説明</label>
             <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
               style={{
-                border: '1px solid #ccc',
+                border: dragOver ? '2px solid #007bff' : '1px solid #ccc',
                 borderRadius: '5px',
-                backgroundColor: ((todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white')
+                backgroundColor: dragOver ? '#f0f8ff' : ((todo.delete_flg || todo.progress === 100) ? '#f5f5f5' : 'white'),
+                position: 'relative'
               }}
             >
               <textarea
@@ -781,8 +982,35 @@ const TodoApp: React.FC = () => {
                   backgroundColor: 'transparent',
                   outline: 'none'
                 }}
-                placeholder="詳細説明を入力..."
+                placeholder="詳細説明を入力... (画像もここにドラッグ&ドロップ可能)"
               />
+              {dragOver && (
+                <div style={{
+                  position: 'absolute',
+                  top: '0',
+                  left: '0',
+                  right: '0',
+                  bottom: '0',
+                  backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                  border: '2px dashed #007bff',
+                  borderRadius: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  pointerEvents: 'none',
+                  zIndex: 1
+                }}>
+                  <div style={{
+                    backgroundColor: 'rgba(0, 123, 255, 0.9)',
+                    color: 'white',
+                    padding: '10px 15px',
+                    borderRadius: '5px',
+                    fontSize: '14px'
+                  }}>
+                    画像をドロップしてください
+                  </div>
+                </div>
+              )}
             </div>
             
             <div style={{ marginTop: '10px', textAlign: 'left' }}>
@@ -1357,45 +1585,52 @@ const TodoApp: React.FC = () => {
 
   return (
     <div>
-      {currentView === 'calendar' && (
-        <SearchForm
-          searchQuery={searchQuery}
-          onSearchChange={handleSearchQueryChange}
-          searchResults={getSearchedTodos}
-        />
-      )}
-      
-      {currentView === 'calendar' && <CalendarView />}
-      {currentView === 'todo' && <TodoView />}
-      
-      {showMarkdown && markdownTodo && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            width: '90%',
-            maxWidth: '1000px',
-            maxHeight: '90%',
-            overflow: 'auto',
-            borderRadius: '8px',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
-          }}>
-            <MarkdownRenderer 
-              description={markdownTodo.description || ''}
-              onBack={handleCloseMarkdown}
+      {imageViewMode ? (
+        <ImageViewPage />
+      ) : (
+        <>
+          {currentView === 'calendar' && (
+            <SearchForm
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchQueryChange}
+              searchResults={getSearchedTodos}
             />
-          </div>
-        </div>
+          )}
+          
+          {currentView === 'calendar' && <CalendarView />}
+          {currentView === 'todo' && <TodoView />}
+          
+          {showMarkdown && markdownTodo && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000
+            }}>
+              <div style={{
+                backgroundColor: 'white',
+                width: '95%',
+                maxWidth: '1400px',
+                maxHeight: '95%',
+                overflow: 'auto',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3)'
+              }}>
+                <MarkdownRenderer 
+                  description={markdownTodo.description || ''}
+                  images={markdownTodo.images || []}
+                  onBack={handleCloseMarkdown}
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
