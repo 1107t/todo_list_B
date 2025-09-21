@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Todo, Filter } from '../../types';
 import TodoItemComponent from '../TodoItem';
 import MarkdownRenderer from '../MarkdownRenderer';
@@ -9,29 +9,10 @@ const TodoApp: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [nextId, setNextId] = useState<number>(1);
   const [expandedTodos, setExpandedTodos] = useState<number[]>([]);
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [markdownTodo, setMarkdownTodo] = useState<Todo | null>(null);
   const [showMarkdown, setShowMarkdown] = useState<boolean>(false);
   const [imageViewMode, setImageViewMode] = useState<boolean>(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
-  
-  const handleSearchQueryChange = useCallback((query: string) => {
-    setSearchQuery(query);
-  }, []);
-
-  const getSearchedTodos = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return [];
-    }
-    
-    const query = searchQuery.toLowerCase().replace(/\s+/g, '');
-    return todos.filter(todo => 
-      !todo.delete_flg && (
-        todo.title.toLowerCase().replace(/\s+/g, '').includes(query) ||
-        (todo.description || '').toLowerCase().replace(/\s+/g, '').includes(query)
-      )
-    );
-  }, [searchQuery, todos]);
 
   const handleMarkClick = useCallback((todo: Todo) => {
     setMarkdownTodo(todo);
@@ -147,91 +128,29 @@ const TodoApp: React.FC = () => {
     );
   };
 
-  interface SearchFormProps {
-    searchQuery: string;
-    onSearchChange: (query: string) => void;
-    searchResults: Todo[];
-  }
-
-  const SearchForm: React.FC<SearchFormProps> = ({ searchQuery, onSearchChange, searchResults }) => {
-    const [localQuery, setLocalQuery] = useState(searchQuery);
-
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      setLocalQuery(value);
-      onSearchChange(value);
-    };
-
-    const handleClear = () => {
-      setLocalQuery('');
-      onSearchChange('');
-    };
-
-    return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 20px 0 20px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ marginBottom: '20px', textAlign: 'center' }}>
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '10px',
-            backgroundColor: 'white',
-            padding: '10px 15px',
-            borderRadius: '10px',
-            border: '2px solid #ddd',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <input
-              type="text"
-              placeholder="Todoを検索..."
-              value={localQuery}
-              onChange={handleInputChange}
-              style={{
-                border: 'none',
-                outline: 'none',
-                fontSize: '16px',
-                width: '300px',
-                backgroundColor: 'transparent'
-              }}
-            />
-            {localQuery && (
-              <button
-                onClick={handleClear}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: '18px',
-                  color: '#666',
-                  padding: '0 5px'
-                }}
-                title="検索をクリア"
-              >
-                ×
-              </button>
-            )}
-          </div>
-          
-          {localQuery && (
-            <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-              {searchResults.length > 0 
-                ? `${searchResults.length}件のタスクが見つかりました（ハイライト表示）`
-                : '該当するタスクが見つかりません'
-              }
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const CalendarView: React.FC = () => {
+  const SearchableCalendarView: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
-    const searchHighlightDates = useMemo(() => {
+    const getSearchedTodos = () => {
+      if (!searchQuery.trim()) {
+        return [];
+      }
+      
+      const query = searchQuery.toLowerCase().replace(/\s+/g, '');
+      return todos.filter(todo => 
+        !todo.delete_flg && (
+          todo.title.toLowerCase().replace(/\s+/g, '').includes(query) ||
+          (todo.description || '').toLowerCase().replace(/\s+/g, '').includes(query)
+        )
+      );
+    };
+
+    const searchHighlightDates = () => {
       if (!searchQuery.trim()) return new Set();
       
       const highlightDates = new Set<string>();
-      getSearchedTodos.forEach(todo => {
+      getSearchedTodos().forEach(todo => {
         const startDate = new Date(todo.start_date);
         const endDate = new Date(todo.due_date);
         
@@ -246,7 +165,7 @@ const TodoApp: React.FC = () => {
       });
       
       return highlightDates;
-    }, [getSearchedTodos, searchQuery]);
+    };
 
     const formatDate = (date: Date) => {
       const year = date.getFullYear();
@@ -314,7 +233,7 @@ const TodoApp: React.FC = () => {
       });
 
       if (searchQuery.trim()) {
-        const searchedIds = new Set(getSearchedTodos.map(todo => todo.id));
+        const searchedIds = new Set(getSearchedTodos().map(todo => todo.id));
         filteredTodos = filteredTodos.filter(todo => searchedIds.has(todo.id));
       }
 
@@ -334,181 +253,240 @@ const TodoApp: React.FC = () => {
       const day = String(date.getDate()).padStart(2, '0');
       const dateString = `${year}-${month}-${day}`;
       
-      return searchHighlightDates.has(dateString);
+      return searchHighlightDates().has(dateString);
     };
 
     const days = getDaysInMonth(currentDate);
+    const searchResults = getSearchedTodos();
 
     return (
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
-              {formatDate(currentDate)}
-            </h2>
-            
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => setCurrentDate(new Date())}
-                style={{
-                  padding: '10px 15px',
-                  backgroundColor: '#808080',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                今日
-              </button>
-              
-              <button
-                onClick={() => navigateMonth('prev')}
-                style={{
-                  padding: '10px 15px',
-                  backgroundColor: '#003366',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                ←
-              </button>
-              
-              <button
-                onClick={() => navigateMonth('next')}
-                style={{
-                  padding: '10px 15px',
-                  backgroundColor: '#003366',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
-                  fontSize: '16px'
-                }}
-              >
-                →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: '1px',
-          backgroundColor: '#ddd',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          overflow: 'hidden'
-        }}>
-          {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-            <div key={day} style={{
-              backgroundColor: '#f8f9fa',
-              padding: '15px 5px',
-              textAlign: 'center',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#333'
+      <div>
+        {/* 検索フォーム */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px 20px 0 20px', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+            <div style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              backgroundColor: 'white',
+              padding: '10px 15px',
+              borderRadius: '10px',
+              border: '2px solid #ddd',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
-              {day}
-            </div>
-          ))}
-          
-          {days.map((day, index) => {
-            const events = getEventsForDate(day.date);
-            const todayFlag = isToday(day.date);
-            const searchHighlighted = isSearchHighlighted(day.date);
-            
-            return (
-              <div
-                key={index}
-                onClick={() => {
-                  setSelectedDate(day.date);
-                  setCurrentView('todo');
-                }}
+              <input
+                type="text"
+                placeholder="Todoを検索..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
-                  backgroundColor: searchHighlighted 
-                    ? '#fff3cd'
-                    : day.isCurrentMonth ? 'white' : '#f8f9fa',
-                  minHeight: '100px',
-                  padding: '8px',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  border: todayFlag ? '2px solid #ff8c00' : searchHighlighted ? '2px solid #ffc107' : 'none',
-                  transition: 'background-color 0.2s ease'
-                }}
-              >
-                <div style={{
+                  border: 'none',
+                  outline: 'none',
                   fontSize: '16px',
-                  fontWeight: todayFlag ? 'bold' : 'normal',
-                  color: day.isCurrentMonth ? (todayFlag ? '#ff8c00' : '#333') : '#999',
-                  marginBottom: '5px'
-                }}>
-                  {day.date.getDate()}
-                </div>
-                
-                {events.slice(0, 3).map(event => (
-                  <div
-                    key={event.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      marginBottom: '2px',
-                      fontSize: '10px',
-                      color: '#333',
-                      overflow: 'hidden'
-                    }}
-                    title={`${event.title} (${event.progress}%)`}
-                  >
-                    <div
-                      style={{
-                        width: '6px',
-                        height: '6px',
-                        backgroundColor: '#003366',
-                        borderRadius: '50%',
-                        marginRight: '4px',
-                        flexShrink: 0
-                      }}
-                    />
-                    <span style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {event.title}
-                    </span>
-                  </div>
-                ))}
-                
-                {events.length > 3 && (
-                  <div style={{
-                    fontSize: '10px',
+                  width: '300px',
+                  backgroundColor: 'transparent'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '18px',
                     color: '#666',
-                    textAlign: 'center'
-                  }}>
-                    +{events.length - 3} more
-                  </div>
-                )}
+                    padding: '0 5px'
+                  }}
+                  title="検索をクリア"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            
+            {searchQuery && (
+              <div style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
+                {searchResults.length > 0 
+                  ? `${searchResults.length}件のタスクが見つかりました（ハイライト表示）`
+                  : '該当するタスクが見つかりません'
+                }
               </div>
-            );
-          })}
+            )}
+          </div>
         </div>
 
-        <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <div style={{ width: '6px', height: '6px', backgroundColor: '#003366', borderRadius: '50%' }}></div>
-            <span style={{ fontSize: '14px' }}>タスク</span>
-          </div>
-          {searchQuery && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <div style={{ width: '12px', height: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '2px' }}></div>
-              <span style={{ fontSize: '14px' }}>検索結果</span>
+        {/* カレンダー */}
+        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px', fontFamily: 'Arial, sans-serif' }}>
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ margin: 0, fontSize: '24px', color: '#333' }}>
+                {formatDate(currentDate)}
+              </h2>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setCurrentDate(new Date())}
+                  style={{
+                    padding: '10px 15px',
+                    backgroundColor: '#808080',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  今日
+                </button>
+                
+                <button
+                  onClick={() => navigateMonth('prev')}
+                  style={{
+                    padding: '10px 15px',
+                    backgroundColor: '#003366',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  ←
+                </button>
+                
+                <button
+                  onClick={() => navigateMonth('next')}
+                  style={{
+                    padding: '10px 15px',
+                    backgroundColor: '#003366',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  →
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(7, 1fr)',
+            gap: '1px',
+            backgroundColor: '#ddd',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            overflow: 'hidden'
+          }}>
+            {['日', '月', '火', '水', '木', '金', '土'].map(day => (
+              <div key={day} style={{
+                backgroundColor: '#f8f9fa',
+                padding: '15px 5px',
+                textAlign: 'center',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                color: '#333'
+              }}>
+                {day}
+              </div>
+            ))}
+            
+            {days.map((day, index) => {
+              const events = getEventsForDate(day.date);
+              const todayFlag = isToday(day.date);
+              const searchHighlighted = isSearchHighlighted(day.date);
+              
+              return (
+                <div
+                  key={index}
+                  onClick={() => {
+                    setSelectedDate(day.date);
+                    setCurrentView('todo');
+                  }}
+                  style={{
+                    backgroundColor: searchHighlighted 
+                      ? '#fff3cd'
+                      : day.isCurrentMonth ? 'white' : '#f8f9fa',
+                    minHeight: '100px',
+                    padding: '8px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                    border: todayFlag ? '2px solid #ff8c00' : searchHighlighted ? '2px solid #ffc107' : 'none',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                >
+                  <div style={{
+                    fontSize: '16px',
+                    fontWeight: todayFlag ? 'bold' : 'normal',
+                    color: day.isCurrentMonth ? (todayFlag ? '#ff8c00' : '#333') : '#999',
+                    marginBottom: '5px'
+                  }}>
+                    {day.date.getDate()}
+                  </div>
+                  
+                  {events.slice(0, 3).map(event => (
+                    <div
+                      key={event.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginBottom: '2px',
+                        fontSize: '10px',
+                        color: '#333',
+                        overflow: 'hidden'
+                      }}
+                      title={`${event.title} (${event.progress}%)`}
+                    >
+                      <div
+                        style={{
+                          width: '6px',
+                          height: '6px',
+                          backgroundColor: '#003366',
+                          borderRadius: '50%',
+                          marginRight: '4px',
+                          flexShrink: 0
+                        }}
+                      />
+                      <span style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {event.title}
+                      </span>
+                    </div>
+                  ))}
+                  
+                  {events.length > 3 && (
+                    <div style={{
+                      fontSize: '10px',
+                      color: '#666',
+                      textAlign: 'center'
+                    }}>
+                      +{events.length - 3} more
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <div style={{ width: '6px', height: '6px', backgroundColor: '#003366', borderRadius: '50%' }}></div>
+              <span style={{ fontSize: '14px' }}>タスク</span>
+            </div>
+            {searchQuery && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <div style={{ width: '12px', height: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '2px' }}></div>
+                <span style={{ fontSize: '14px' }}>検索結果</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -776,15 +754,7 @@ const TodoApp: React.FC = () => {
         <ImageViewPage />
       ) : (
         <>
-          {currentView === 'calendar' && (
-            <SearchForm
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchQueryChange}
-              searchResults={getSearchedTodos}
-            />
-          )}
-          
-          {currentView === 'calendar' && <CalendarView />}
+          {currentView === 'calendar' && <SearchableCalendarView />}
           {currentView === 'todo' && <TodoView />}
           
           {showMarkdown && markdownTodo && (
