@@ -1,45 +1,152 @@
-/* 画面全体のスタイル */
-body, html {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  font-family: 'Arial', sans-serif;
-  background-color: #f0f0f0; /* 微妙なグレーの背景色 */
-}
-
-
-#root {
-  max-width: 1300px; /* 最大幅を1600pxに拡大 */
-  margin: 0 auto;
-  padding: 2rem;
+.date-display {
   text-align: center;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  width: 100%;
 }
 
-
-.todo-container {
-  background-color: #d3d3d3;
-  padding: 2em;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  width: 100%; /* 幅を100%に設定 */
-  max-width: 1200px; /* 最大幅を1200pxに設定 */
-  margin: 1em; /* 中央寄せ */
-  box-sizing: border-box; /* パディングとボーダーを含む */
+/* フィルター選択の中央配置 */
+.filter-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
-
-select, input[type='text'], button[type='submit'] {
-  width: 95%;
+.filter-select {
+  width: auto;
+  max-width: 1000px;
   margin: 0.5em 0;
-  padding: 0.75em; /* パディングを大きく */
-  font-size: 1.2em; /* フォントサイズを大きく */
+  padding: 0.75em;
+  font-size: 1.2em;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
 
+/* 入力フィールドの中央配置 */
+.input-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+}
 
+.task-input {
+  width: auto;
+  max-width: 1000px;
+  margin: 0.5em 0;
+  padding: 0.75em;
+  font-size: 1.2em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* ナビゲーションボタン用のスタイル */
+.navigation-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.nav-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+/* すべてのボタンをオレンジ色に統一 */
+.prev-button, .next-button {
+  background-color: #ff8c00;
+  color: white;
+}
+
+.prev-button:hover, .next-button:hover {
+  background-color: #e67e00;
+}
+
+.back-button {
+  background-color: #ff8c00;
+  color: white;
+}
+
+.back-button:hover {
+  background-color: #e67e00;
+}
+
+/* ごみ箱を空にするボタン */
+.empty-button {
+  background-color: #ff8c00 !important;
+  width: auto !important;
+}
+
+.empty-button:hover {
+  background-color: #e67e00 !important;
+}
+
+/* 復元ボタン */
+.restore-button {
+  background-color: #dc3545 !important;
+  color: white !important;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  width: auto !important;
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+}
+
+.restore-button:hover {
+  background-color: #c82333 !important;
+}
+
+/* 削除ボタン */
+.delete-button {
+  background-color: #dc3545 !important;
+  color: white !important;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  width: auto !important;
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+}
+
+.delete-button:hover {
+  background-color: #c82333 !important;
+}
+
+/* 編集ボタン */
+.edit-button {
+  background-color: #28a745 !important;
+  color: white !important;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  width: auto !important;
+  border: none !important;
+  border-radius: 3px !important;
+  cursor: pointer !important;
+}
+
+.edit-button:hover {
+  background-color: #218838 !important;
+}
+
+/* 追加ボタンもオレンジ色に */
 button[type='submit'] {
-  background-color: #007BFF;
+  background-color: #ff8c00 !important;
   color: #fff;
   border: none;
   cursor: pointer;
@@ -47,57 +154,17 @@ button[type='submit'] {
   width: 35%;
   font-size: 1.2em;
   padding: 0.5em 1em;
+  border-radius: 5px;
 }
-
 
 button[type='submit']:hover {
-  background-color: #0056b3;
+  background-color: #e67e00 !important;
 }
 
-
-ul {
-  list-style: none;
-  padding: 0;
-  width: 100%; /* 幅を100%に設定 */
-}
-
-
-li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f9f9f9;/* 背景色を白に設定 */
-  padding: 1em; /* パディングを大きく */
-  margin: 1em 0; /* マージンを大きく */
-  border-radius: 5px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* リストアイテムのシャドウを追加 */
-  width: 100%; /* 幅を100%に設定 */
-  box-sizing: border-box; /* パディングとボーダーを含む */
-}
-
-
-li input[type='text'] {
-  flex-grow: 1;
-  margin-right: 1em;
-  border: 1px solid #ccc; /* ボーダーを追加 */
-  border-radius: 5px; /* ボーダーの角を丸く */
-  background: #fff; /* 背景色を白に設定 */
-  outline: none;
-  font-size: 1.2em; /* フォントサイズを大きく */
-  padding: 0.5em; /* パディングを追加 */
-  box-sizing: border-box; /* パディングとボーダーを含む */
-}
-
-
-li input[type='checkbox'] {
-  margin-right: 1em;
-  transform: scale(1.5); /* チェックボックスを大きく */
-}
-
-
+/* リスト内のボタンもオレンジ色に */
 li button {
   padding: 0.3em 0.6em; 
-  background-color: #dc3545;
+  background-color: #ff8c00 !important;
   color: #fff;
   border: none;
   border-radius: 5px;
@@ -105,13 +172,21 @@ li button {
   width: 100px;
 }
 
-
 li button:hover {
-  background-color: #c82333;
+  background-color: #e67e00 !important;
 }
 
+/* 完了したタスク */
+.completed {
+  text-decoration: line-through;
+  color: #666;
+  background-color: #f8f9fa !important;
+}
 
-button[disabled] {
-  background-color: #ccc;
-  cursor: not-allowed;
+/* 空メッセージ */
+.empty-message {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  font-size: 1.1rem;
 }
